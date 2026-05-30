@@ -48,7 +48,7 @@ KikiRecorder là ứng dụng desktop ghi màn hình đa nền tảng dùng Elec
 - `src/renderer/components/RegionOverlayApp.tsx`: overlay trong suốt phủ màn hình để kéo chọn, di chuyển và resize vùng ghi trước khi bắt đầu.
 - `src/renderer/components/RecordingToolboxApp.tsx`: cửa sổ toolbox riêng khi quay. File này cần được làm lại theo đặc tả Toolbox bên dưới.
 - `src/renderer/components/RecordingSurfaceApp.tsx`: surface trong suốt chỉ phục vụ vẽ trực tiếp và hiển thị annotation trên desktop.
-- `src/renderer/components/RecordingStage.tsx`: preview nhỏ trong app; hỗ trợ nhập text inline ngay tại vị trí click, kéo text bằng công cụ Select, và kéo khung webcam overlay đến vị trí bất kỳ trong preview.
+- `src/renderer/components/RecordingStage.tsx`: preview nhỏ trong app; hỗ trợ nhập text inline ngay tại vị trí click, textarea phải focus được ngay và không bị canvas pointer-capture chặn nhập, kéo text bằng công cụ Select, và kéo khung webcam overlay đến vị trí bất kỳ trong preview.
 - `src/renderer/lib/recorder/RecorderEngine.ts`: lấy stream màn hình/webcam/audio, chạy MediaRecorder, điều khiển pause/resume/mute và lưu file.
 - `src/renderer/lib/recorder/LivePreviewEngine.ts`: chạy live preview nhẹ trước khi quay, lấy stream màn hình/cửa sổ/webcam đã chọn và render bằng `CanvasCompositor` nhưng không bật MediaRecorder/FFmpeg.
 - `src/renderer/lib/recorder/CanvasCompositor.ts`: render màn hình, webcam overlay, annotation, blur/pixelate, spotlight, smooth zoom và click highlight vào canvas ghi hình; không vẽ dòng gợi ý phím tắt lên preview/video. Blur/pixelate phải được render trước các nét vẽ màu để không tạo bóng màu cũ của bút.

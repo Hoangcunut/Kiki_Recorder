@@ -558,6 +558,8 @@ p {
   overflow: auto;
   line-height: 1.24;
   pointer-events: auto;
+  user-select: text;
+  caret-color: currentColor;
 }
 
 .previewTextEditor::placeholder {

@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { Annotation, AnnotationStyle, Point, Rect, ToolName, WebcamShape } from "../../shared/types";
 import { id } from "../lib/id";
@@ -54,8 +54,19 @@ export function RecordingStage({
   const areaDragStart = useRef<Point | null>(null);
   const textMove = useRef<{ id: string; start: Point; origin: Point } | null>(null);
   const webcamDrag = useRef<{ start: Point; origin: Rect } | null>(null);
+  const textEditorRef = useRef<HTMLTextAreaElement | null>(null);
   const [editingText, setEditingText] = useState<{ point: Point; value: string } | null>(null);
   const text = useI18n();
+
+  useEffect(() => {
+    if (!editingText) {
+      return;
+    }
+    const frame = window.requestAnimationFrame(() => {
+      textEditorRef.current?.focus();
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [editingText?.point.x, editingText?.point.y]);
 
   function canvasPoint(event: React.PointerEvent<HTMLCanvasElement>): Point {
     return canvasPointFromClient(event.clientX, event.clientY);
@@ -81,6 +92,12 @@ export function RecordingStage({
     const point = canvasPoint(event);
     onPointer(point);
     onClickPulse(point);
+
+    if (tool === "text") {
+      setEditingText({ point, value: "" });
+      return;
+    }
+
     event.currentTarget.setPointerCapture(event.pointerId);
 
     if (tool === "select") {
@@ -95,10 +112,6 @@ export function RecordingStage({
       if (target) {
         onRemove(target.id);
       }
-      return;
-    }
-    if (tool === "text") {
-      setEditingText({ point, value: "" });
       return;
     }
     if (tool === "marker") {
@@ -337,9 +350,9 @@ export function RecordingStage({
       ) : null}
       {editingText && editingTextStyle ? (
         <textarea
+          ref={textEditorRef}
           className="previewTextEditor"
           style={editingTextStyle}
-          autoFocus
           value={editingText.value}
           placeholder={text.textAnnotationPrompt}
           onChange={(event) => setEditingText({ ...editingText, value: event.target.value })}
