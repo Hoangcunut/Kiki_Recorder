@@ -19,6 +19,7 @@ import {
 } from "../shared/types";
 import { defaultAnnotationStyle, defaultRecordingSettings, fallbackAppSettings } from "./defaults";
 import { RecorderEngine, RecorderState } from "./lib/recorder/RecorderEngine";
+import { LivePreviewEngine } from "./lib/recorder/LivePreviewEngine";
 import { AnnotationToolbar } from "./components/AnnotationToolbar";
 import { RecordingStage } from "./components/RecordingStage";
 import { RecorderPanel } from "./components/RecorderPanel";
@@ -36,6 +37,7 @@ type UiState = RecorderState | "preparing" | "countdown" | "saving";
 export default function App() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const engineRef = useRef(new RecorderEngine());
+  const previewRef = useRef(new LivePreviewEngine());
   const elapsedTimer = useRef<number | undefined>(undefined);
   const autoStopTimer = useRef<number | undefined>(undefined);
   const startedAt = useRef(0);
@@ -44,6 +46,8 @@ export default function App() {
   const annotationsRef = useRef<Annotation[]>([]);
   const overlayActiveId = useRef<string | null>(null);
   const startInProgress = useRef(false);
+  const pendingWebcamPosition = useRef<Rect | undefined>(undefined);
+  const webcamPositionFrame = useRef<number | undefined>(undefined);
 
   const [tab, setTab] = useState<TabId>("record");
   const [settings, setSettingsState] = useState<RecordingSettings>(defaultRecordingSettings);
@@ -59,6 +63,7 @@ export default function App() {
   const [style, setStyle] = useState<AnnotationStyle>(defaultAnnotationStyle);
   const [markerNumber, setMarkerNumber] = useState(1);
   const [uiState, setUiState] = useState<UiState>("idle");
+  const [previewActive, setPreviewActive] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [countdown, setCountdown] = useState(0);
   const [error, setError] = useState<string | undefined>();
@@ -66,6 +71,7 @@ export default function App() {
   const [toolbarCollapsed, setToolbarCollapsed] = useState(false);
   const [toolbarHidden, setToolbarHidden] = useState(false);
   const [toolboxPanelOpen, setToolboxPanelOpen] = useState(false);
+  const [surfaceAnnotationsVisible, setSurfaceAnnotationsVisible] = useState(true);
   const [systemMuted, setSystemMuted] = useState(false);
   const [microphoneMuted, setMicrophoneMuted] = useState(false);
   const text = getI18n(appSettings.language);
@@ -78,7 +84,11 @@ export default function App() {
     void bootstrap();
     return () => {
       void window.kiki.closeRecordingOverlay();
+      previewRef.current.stop();
       engineRef.current.cleanup();
+      if (webcamPositionFrame.current) {
+        window.cancelAnimationFrame(webcamPositionFrame.current);
+      }
       clearTimers();
     };
   }, []);
@@ -122,7 +132,51 @@ export default function App() {
     return window.kiki.onRecordingOverlayEvent((event) => {
       void handleRecordingOverlayEvent(event);
     });
-  }, [settings, tool, style, markerNumber, annotations, uiState, toolbarVisible, toolbarCollapsed, toolbarHidden, toolboxPanelOpen, systemMuted, microphoneMuted, appSettings]);
+  }, [settings, tool, style, markerNumber, annotations, uiState, toolbarVisible, toolbarCollapsed, toolbarHidden, toolboxPanelOpen, surfaceAnnotationsVisible, systemMuted, microphoneMuted, appSettings]);
+
+  useEffect(() => {
+    previewRef.current.updateSettings(settings);
+  }, [settings]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const canvas = canvasRef.current;
+    if (tab !== "record" || uiState !== "idle" || !canvas || !canLivePreview(settings)) {
+      previewRef.current.stop();
+      setPreviewActive(false);
+      return;
+    }
+
+    setPreviewActive(false);
+    void previewRef.current.start(canvas, settings, () => annotationsRef.current)
+      .then(() => {
+        if (!cancelled) {
+          setPreviewActive(true);
+        }
+      })
+      .catch((cause) => {
+        if (!cancelled) {
+          previewRef.current.stop();
+          setPreviewActive(false);
+          setError(errorMessage(cause));
+        }
+      });
+
+    return () => {
+      cancelled = true;
+      previewRef.current.stop();
+      setPreviewActive(false);
+    };
+  }, [
+    tab,
+    uiState,
+    settings.mode,
+    settings.sourceId,
+    settings.webcam.enabled,
+    settings.webcam.deviceId,
+    settings.quality.label,
+    settings.quality.fps
+  ]);
 
   useEffect(() => {
     if (uiState === "idle" || uiState === "preparing" || uiState === "saving") {
@@ -140,6 +194,7 @@ export default function App() {
     toolbarCollapsed,
     toolbarHidden,
     toolboxPanelOpen,
+    surfaceAnnotationsVisible,
     systemMuted,
     microphoneMuted,
     appSettings.language,
@@ -153,8 +208,9 @@ export default function App() {
     [sources, settings.sourceId]
   );
   function setSettings(next: RecordingSettings): void {
-    setSettingsState(next);
-    engineRef.current.updateSettings(next);
+    const normalized = normalizeRecordingSettings(next);
+    setSettingsState(normalized);
+    engineRef.current.updateSettings(normalized);
   }
 
   async function bootstrap(): Promise<void> {
@@ -183,11 +239,12 @@ export default function App() {
     setSources(nextSources);
     setDisplays(nextDisplays);
     setSettingsState((current) => {
-      if (current.sourceId || current.mode === "browser-tab" || current.mode === "webcam") {
-        return current;
+      const normalized = normalizeRecordingSettings(current);
+      if (normalized.sourceId || normalized.mode === "webcam") {
+        return normalized;
       }
       const firstScreen = nextSources.find((source) => source.type === "screen");
-      return firstScreen ? { ...current, sourceId: firstScreen.id, sourceName: firstScreen.name } : current;
+      return firstScreen ? { ...normalized, sourceId: firstScreen.id, sourceName: firstScreen.name } : normalized;
     });
   }
 
@@ -201,12 +258,14 @@ export default function App() {
     }
     startInProgress.current = true;
     setUiState("preparing");
+    previewRef.current.stop();
+    setPreviewActive(false);
     setError(undefined);
     try {
-      let activeSettings: RecordingSettings = {
+      let activeSettings: RecordingSettings = normalizeRecordingSettings({
         ...(override ?? settings),
         sourceName: (override ?? settings).sourceName ?? activeSource?.name
-      };
+      });
       if (activeSettings.mode === "area") {
         const regionSettings = await ensureDesktopRegionSettings(activeSettings);
         if (!regionSettings) {
@@ -215,13 +274,13 @@ export default function App() {
         }
         activeSettings = regionSettings;
       }
-      resetRecordingSessionAnnotations();
       const shouldCountdown = activeSettings.countdownSeconds > 0;
       await engineRef.current.start(canvas, activeSettings, () => annotationsRef.current, (state) => setUiState(state), shouldCountdown);
       setToolbarVisible(true);
       setToolbarCollapsed(false);
       setToolbarHidden(false);
       setToolboxPanelOpen(false);
+      setSurfaceAnnotationsVisible(true);
       setSystemMuted(false);
       setMicrophoneMuted(false);
       await openRecordingOverlay(activeSettings, "select", true);
@@ -302,6 +361,7 @@ export default function App() {
     } catch (cause) {
       setError(errorMessage(cause));
     } finally {
+      resetRecordingSessionAnnotations();
       setUiState("idle");
       setElapsed(0);
       overlayActiveId.current = null;
@@ -318,6 +378,7 @@ export default function App() {
     clearTimers();
     await window.kiki.closeRecordingOverlay();
     await engineRef.current.discard();
+    resetRecordingSessionAnnotations();
     setUiState("idle");
     setElapsed(0);
     await startRecording(undefined, true);
@@ -325,6 +386,16 @@ export default function App() {
 
   async function screenshot(): Promise<void> {
     try {
+      if (uiState === "idle" && previewActive && canvasRef.current) {
+        const canvas = canvasRef.current;
+        await window.kiki.saveScreenshot({
+          fileName: `${text.screenshot} ${new Date().toLocaleString()}`,
+          dataUrl: canvas.toDataURL("image/png"),
+          width: canvas.width,
+          height: canvas.height
+        });
+        return;
+      }
       await engineRef.current.saveScreenshot(`${text.screenshot} ${new Date().toLocaleString()}`, settings, () => annotationsRef.current);
     } catch (cause) {
       setError(errorMessage(cause));
@@ -406,6 +477,7 @@ export default function App() {
       toolbarCollapsed,
       toolbarHidden,
       toolboxPanelOpen,
+      surfaceAnnotationsVisible,
       annotations: currentAnnotations,
       activeTool,
       style,
@@ -473,6 +545,32 @@ export default function App() {
     };
   }
 
+  function updateWebcamPosition(position: Rect): void {
+    pendingWebcamPosition.current = position;
+    if (webcamPositionFrame.current) {
+      return;
+    }
+    webcamPositionFrame.current = window.requestAnimationFrame(() => {
+      webcamPositionFrame.current = undefined;
+      const nextPosition = pendingWebcamPosition.current;
+      if (!nextPosition) {
+        return;
+      }
+      setSettingsState((current) => {
+        const next = normalizeRecordingSettings({
+          ...current,
+          webcam: {
+            ...current.webcam,
+            position: nextPosition
+          }
+        });
+        engineRef.current.updateSettings(next);
+        previewRef.current.updateSettings(next);
+        return next;
+      });
+    });
+  }
+
   async function handleRecordingOverlayEvent(event: RecordingOverlayEvent): Promise<void> {
     switch (event.type) {
       case "pointer-down":
@@ -532,6 +630,8 @@ export default function App() {
         setToolbarCollapsed(event.collapsed);
         return;
       case "toggle-minimize":
+        setToolbarHidden(false);
+        setToolboxPanelOpen(false);
         setToolbarCollapsed((c) => !c);
         return;
       case "toggle-hide":
@@ -554,6 +654,9 @@ export default function App() {
         return;
       case "toggle-clicks":
         setSettings({ ...settings, highlightClicks: !settings.highlightClicks });
+        return;
+      case "toggle-surface-annotations":
+        setSurfaceAnnotationsVisible((visible) => !visible);
         return;
       default:
         return;
@@ -651,33 +754,41 @@ export default function App() {
   }
 
   function addAnnotation(annotation: Annotation): void {
-    setAnnotations((current) => [...current, annotation]);
+    const next = [...annotationsRef.current, annotation];
+    annotationsRef.current = next;
+    setAnnotations(next);
     setRedoStack([]);
   }
 
   function updateAnnotation(annotation: Annotation): void {
-    setAnnotations((current) => current.map((item) => (item.id === annotation.id ? annotation : item)));
+    const next = annotationsRef.current.map((item) => (item.id === annotation.id ? annotation : item));
+    annotationsRef.current = next;
+    setAnnotations(next);
   }
 
   function removeAnnotation(id: string): void {
-    setAnnotations((current) => current.filter((annotation) => annotation.id !== id));
+    const next = annotationsRef.current.filter((annotation) => annotation.id !== id);
+    annotationsRef.current = next;
+    setAnnotations(next);
   }
 
   function undo(): void {
-    setAnnotations((current) => {
-      const removed = current[current.length - 1];
-      if (removed) {
-        setRedoStack((redo) => [removed, ...redo]);
-      }
-      return current.slice(0, -1);
-    });
+    const removed = annotationsRef.current[annotationsRef.current.length - 1];
+    if (removed) {
+      setRedoStack((redo) => [removed, ...redo]);
+    }
+    const next = annotationsRef.current.slice(0, -1);
+    annotationsRef.current = next;
+    setAnnotations(next);
   }
 
   function redo(): void {
     setRedoStack((current) => {
       const [next, ...rest] = current;
       if (next) {
-        setAnnotations((items) => [...items, next]);
+        const annotationsNext = [...annotationsRef.current, next];
+        annotationsRef.current = annotationsNext;
+        setAnnotations(annotationsNext);
       }
       return rest;
     });
@@ -702,10 +813,12 @@ export default function App() {
 
   function pointer(point: Point): void {
     engineRef.current.setPointer(point);
+    previewRef.current.setPointer(point);
   }
 
   function clickPulse(point: Point): void {
     engineRef.current.addClick(point);
+    previewRef.current.addClick(point);
   }
 
   function startElapsedTimer(): void {
@@ -811,12 +924,19 @@ export default function App() {
                 style={style}
                 markerNumber={markerNumber}
                 recordingState={uiState}
+                previewActive={previewActive}
                 onPointer={pointer}
                 onClickPulse={clickPulse}
                 onAdd={addAnnotation}
                 onUpdate={updateAnnotation}
                 onRemove={removeAnnotation}
                 onMarkerUsed={() => setMarkerNumber((value) => value + 1)}
+                webcamOverlay={{
+                  enabled: settings.webcam.enabled && settings.mode !== "webcam",
+                  position: settings.webcam.position,
+                  shape: settings.webcam.shape,
+                  onMove: updateWebcamPosition
+                }}
               />
               {error ? <div className="errorBanner">{error}</div> : null}
             </section>
@@ -864,6 +984,26 @@ function isTinyBox(from: Point, to: Point): boolean {
   return Math.abs(to.x - from.x) < 12 || Math.abs(to.y - from.y) < 12;
 }
 
+function normalizeRecordingSettings(settings: RecordingSettings): RecordingSettings {
+  const mode = settings.mode === "browser-tab" ? "fullscreen" : settings.mode;
+  if (mode === "area") {
+    return { ...settings, mode };
+  }
+  return {
+    ...settings,
+    mode,
+    captureArea: undefined,
+    captureRegion: undefined
+  };
+}
+
+function canLivePreview(settings: RecordingSettings): boolean {
+  if (settings.mode === "webcam") {
+    return true;
+  }
+  return Boolean(settings.sourceId);
+}
+
 function settingsFromRegion(settings: RecordingSettings, region: DesktopCaptureRegion): RecordingSettings {
   return {
     ...settings,
@@ -885,8 +1025,8 @@ function toolbarOnlyBounds(displayBounds: Rect, panelOpen: boolean, hidden: bool
     };
   }
   if (collapsed) {
-    const width = 56;
-    const height = 56;
+    const width = 172;
+    const height = 52;
     return {
       x: displayBounds.x + Math.round((displayBounds.width - width) / 2),
       y: displayBounds.y + 24,

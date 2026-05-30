@@ -177,6 +177,7 @@ export type RecordingOverlayConfig = {
   toolbarCollapsed: boolean;
   toolbarHidden: boolean;
   toolboxPanelOpen: boolean;
+  surfaceAnnotationsVisible: boolean;
   annotations: Annotation[];
   activeTool: ToolName;
   style: AnnotationStyle;
@@ -219,7 +220,8 @@ export type RecordingOverlayEvent =
   | { type: "toggle-system-audio" }
   | { type: "toggle-microphone" }
   | { type: "toggle-spotlight" }
-  | { type: "toggle-clicks" };
+  | { type: "toggle-clicks" }
+  | { type: "toggle-surface-annotations" };
 
 export type RecordingMetadata = {
   title: string;

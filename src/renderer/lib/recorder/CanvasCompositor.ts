@@ -85,7 +85,7 @@ export class CanvasCompositor {
     ctx.fillStyle = "#05070b";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    const crop = sourceCrop(this.sourceVideo, this.settings.captureArea);
+    const crop = sourceCrop(this.sourceVideo, this.settings.mode === "area" ? this.settings.captureArea : undefined);
     this.currentZoom = smoothZoom(this.currentZoom, this.settings.zoom);
     drawCover(ctx, this.sourceVideo, crop, { x: 0, y: 0, width: canvas.width, height: canvas.height }, this.currentZoom, this.pointer);
     this.drawSpotlight();

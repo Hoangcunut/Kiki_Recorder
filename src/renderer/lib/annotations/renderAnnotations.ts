@@ -1,7 +1,24 @@
 import { Annotation, Point, Rect } from "../../../shared/types";
 
+type EffectAnnotation = Extract<Annotation, { from: Point; to: Point }> & {
+  tool: "blur" | "pixelate";
+};
+
 export function renderAnnotations(ctx: CanvasRenderingContext2D, annotations: Annotation[]): void {
+  for (const annotation of annotations.filter(isEffectAnnotation)) {
+    ctx.save();
+    if (annotation.tool === "blur") {
+      blurRegion(ctx, bounds(annotation.from, annotation.to), false);
+    } else {
+      blurRegion(ctx, bounds(annotation.from, annotation.to), true);
+    }
+    ctx.restore();
+  }
+
   for (const annotation of annotations) {
+    if (isEffectAnnotation(annotation)) {
+      continue;
+    }
     ctx.save();
     ctx.globalAlpha = annotation.style.opacity;
     ctx.lineCap = "round";
@@ -39,12 +56,6 @@ export function renderAnnotations(ctx: CanvasRenderingContext2D, annotations: An
       case "marker":
         marker(ctx, annotation.at, annotation.number);
         break;
-      case "blur":
-        blurRegion(ctx, bounds(annotation.from, annotation.to), false);
-        break;
-      case "pixelate":
-        blurRegion(ctx, bounds(annotation.from, annotation.to), true);
-        break;
       case "eraser":
         break;
       default:
@@ -52,6 +63,10 @@ export function renderAnnotations(ctx: CanvasRenderingContext2D, annotations: An
     }
     ctx.restore();
   }
+}
+
+function isEffectAnnotation(annotation: Annotation): annotation is EffectAnnotation {
+  return annotation.tool === "blur" || annotation.tool === "pixelate";
 }
 
 export function hitTestAnnotation(annotation: Annotation, point: Point): boolean {

@@ -10,7 +10,6 @@ import {
   Save,
   Scissors,
   Square,
-  Video,
   Volume2
 } from "lucide-react";
 import type { ComponentType } from "react";
@@ -57,12 +56,18 @@ export function RecorderPanel({
     { mode: "fullscreen", icon: Monitor, label: text.modeScreen },
     { mode: "area", icon: Scissors, label: text.modeArea },
     { mode: "window", icon: Square, label: text.modeWindow },
-    { mode: "browser-tab", icon: Video, label: text.modeTab },
     { mode: "webcam", icon: Camera, label: text.modeWebcam }
   ];
 
   function patch(next: Partial<RecordingSettings>): void {
     onSettings({ ...settings, ...next });
+  }
+
+  function changeMode(mode: RecordingSettings["mode"]): void {
+    patch({
+      mode,
+      ...(mode !== "area" ? { captureArea: undefined, captureRegion: undefined } : {})
+    });
   }
 
   function patchArea(next: Partial<Rect>): void {
@@ -94,7 +99,7 @@ export function RecorderPanel({
             <button
               key={mode}
               className={settings.mode === mode ? "selected" : ""}
-              onClick={() => patch({ mode })}
+              onClick={() => changeMode(mode)}
             >
               <Icon size={16} />
               {label}
@@ -103,7 +108,7 @@ export function RecorderPanel({
         </div>
       </section>
 
-      {settings.mode !== "browser-tab" && settings.mode !== "webcam" ? (
+      {settings.mode !== "webcam" ? (
         <section className="panelSection">
           <h3>{text.source}</h3>
           <select
@@ -142,13 +147,6 @@ export function RecorderPanel({
               </button>
             ))}
           </div>
-        </section>
-      ) : null}
-
-      {settings.mode === "browser-tab" ? (
-        <section className="panelSection subtleSection">
-          <h3>{text.browserTab}</h3>
-          <p>{text.browserTabNote}</p>
         </section>
       ) : null}
 

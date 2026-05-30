@@ -57,7 +57,9 @@ export function RecordingSurfaceApp() {
       captureRect.width / Math.max(1, config.sourceSize.width),
       captureRect.height / Math.max(1, config.sourceSize.height)
     );
-    renderAnnotations(ctx, config.annotations);
+    if (config.surfaceAnnotationsVisible) {
+      renderAnnotations(ctx, config.annotations);
+    }
     ctx.restore();
   }, [config, captureRect]);
 

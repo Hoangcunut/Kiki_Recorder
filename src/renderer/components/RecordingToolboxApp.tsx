@@ -8,6 +8,7 @@ import {
   Droplet,
   Eraser,
   Eye,
+  EyeOff,
   Grid,
   GripVertical,
   Highlighter,
@@ -108,6 +109,7 @@ export function RecordingToolboxApp() {
         const centerX = (config?.sourceSize?.width ?? 1920) / 2;
         const centerY = (config?.sourceSize?.height ?? 1080) / 2;
         send({ type: "text", point: { x: centerX, y: centerY }, text: textInput.trim() });
+        send({ type: "tool", tool: "select" });
         setTextInput("");
       }
       setShowTextInput(false);
@@ -121,6 +123,7 @@ export function RecordingToolboxApp() {
       const centerX = (config?.sourceSize?.width ?? 1920) / 2;
       const centerY = (config?.sourceSize?.height ?? 1080) / 2;
       send({ type: "text", point: { x: centerX, y: centerY }, text: textInput.trim() });
+      send({ type: "tool", tool: "select" });
       setTextInput("");
       setShowTextInput(false);
     } else if (e.key === "Escape") {
@@ -145,14 +148,20 @@ export function RecordingToolboxApp() {
 
   if (config.toolbarCollapsed) {
     return (
-      <div className="recordingToolboxRoot">
-        <button 
-          className="toolboxMinimized nativeDrag" 
-          onClick={() => send({ type: "toggle-minimize" })}
-          title="Restore toolbar"
-        >
-          <Video size={20} />
-        </button>
+      <div className="recordingToolboxRoot minimizedRoot">
+        <div className="toolboxMinimizedShell">
+          <span className="toolboxMinimizedGrip nativeDrag" title={text.moveToolbar}>
+            <GripVertical size={16} />
+          </span>
+          <button
+            className="toolboxMinimizedButton"
+            onClick={() => send({ type: "toggle-minimize" })}
+            title={text.restoreToolbox}
+          >
+            <Video size={18} />
+            <span>{text.restoreToolbox}</span>
+          </button>
+        </div>
       </div>
     );
   }
@@ -179,6 +188,14 @@ export function RecordingToolboxApp() {
 
           <button className={`toolboxIconButton underlined pencilButton ${config.toolboxPanelOpen ? "active" : ""}`} title={text.showToolbarTools} onClick={togglePanel}>
             <PenLine size={18} />
+          </button>
+
+          <button
+            className={`toolboxIconButton underlined surfaceEye ${config.surfaceAnnotationsVisible ? "active" : ""}`}
+            title={config.surfaceAnnotationsVisible ? text.hideDesktopAnnotations : text.showDesktopAnnotations}
+            onClick={() => send({ type: "toggle-surface-annotations" })}
+          >
+            {config.surfaceAnnotationsVisible ? <Eye size={18} /> : <EyeOff size={18} />}
           </button>
 
           <button className={`toolboxIconButton addButton ${showTextInput ? "active" : ""}`} title="Add text" onClick={handleAddText}>

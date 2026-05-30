@@ -1,6 +1,6 @@
 {
   "name": "kiki-recorder",
-  "version": "0.1.4",
+  "version": "0.1.10",
   "description": "Privacy-first cross-platform desktop screen recorder with annotations, webcam overlay, scheduling, local library, and FFmpeg exports.",
   "author": "KikiRecorder Contributors",
   "license": "MIT",

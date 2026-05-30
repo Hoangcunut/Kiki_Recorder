@@ -371,11 +371,12 @@ function bringRecordingToolboxToFront(): void {
 }
 
 function createRecordingToolboxWindow(config: RecordingOverlayConfig): BrowserWindow {
+  const minSize = toolboxWindowMinSize(config);
   const overlay = new BrowserWindow({
     x: Math.round(config.bounds.x),
     y: Math.round(config.bounds.y),
-    width: Math.max(300, Math.round(config.bounds.width)),
-    height: Math.max(56, Math.round(config.bounds.height)),
+    width: Math.max(minSize.width, Math.round(config.bounds.width)),
+    height: Math.max(minSize.height, Math.round(config.bounds.height)),
     frame: false,
     transparent: false,
     backgroundColor: "#0f141e",
@@ -480,6 +481,7 @@ function updateRecordingOverlay(config: RecordingOverlayConfig): boolean {
     return false;
   }
   const previouslyHidden = recordingOverlayState.toolbarHidden;
+  const previouslyCollapsed = recordingOverlayState.toolbarCollapsed;
   recordingOverlayState = config;
 
   if (!config.surfaceVisible) {
@@ -546,6 +548,9 @@ function updateRecordingOverlay(config: RecordingOverlayConfig): boolean {
       nextX = Math.round(config.bounds.x);
       nextY = Math.round(config.bounds.y);
     }
+  } else if (config.toolbarCollapsed !== previouslyCollapsed) {
+    nextX = Math.round(config.bounds.x);
+    nextY = Math.round(config.bounds.y);
   } else if (!recordingOverlayState) {
     nextX = Math.round(config.bounds.x);
     nextY = Math.round(config.bounds.y);
@@ -554,8 +559,8 @@ function updateRecordingOverlay(config: RecordingOverlayConfig): boolean {
   const nextBounds = {
     x: Math.round(nextX),
     y: Math.round(nextY),
-    width: Math.max(config.toolbarHidden ? 8 : 48, Math.round(config.bounds.width)),
-    height: Math.max(config.toolbarHidden ? 8 : 48, Math.round(config.bounds.height))
+    width: Math.max(toolboxWindowMinSize(config).width, Math.round(config.bounds.width)),
+    height: Math.max(toolboxWindowMinSize(config).height, Math.round(config.bounds.height))
   };
 
   if (
@@ -570,6 +575,16 @@ function updateRecordingOverlay(config: RecordingOverlayConfig): boolean {
   recordingOverlayWindow.webContents.send("recording-overlay:update", config);
   bringRecordingToolboxToFront();
   return true;
+}
+
+function toolboxWindowMinSize(config: RecordingOverlayConfig): { width: number; height: number } {
+  if (config.toolbarHidden) {
+    return { width: 8, height: 8 };
+  }
+  if (config.toolbarCollapsed) {
+    return { width: 172, height: 52 };
+  }
+  return { width: 300, height: 56 };
 }
 
 function closeRecordingOverlay(): boolean {

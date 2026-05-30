@@ -1,6 +1,6 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import type { CSSProperties } from "react";
-import { Annotation, AnnotationStyle, Point, Rect, ToolName } from "../../shared/types";
+import { Annotation, AnnotationStyle, Point, Rect, ToolName, WebcamShape } from "../../shared/types";
 import { id } from "../lib/id";
 import { hitTestAnnotation } from "../lib/annotations/renderAnnotations";
 import { useI18n } from "../i18n";
@@ -12,6 +12,7 @@ type Props = {
   style: AnnotationStyle;
   markerNumber: number;
   recordingState: string;
+  previewActive: boolean;
   onPointer: (point: Point) => void;
   onClickPulse: (point: Point) => void;
   onAdd: (annotation: Annotation) => void;
@@ -24,6 +25,12 @@ type Props = {
     value?: Rect;
     onChange: (rect: Rect) => void;
   };
+  webcamOverlay?: {
+    enabled: boolean;
+    position: Rect;
+    shape: WebcamShape;
+    onMove: (position: Rect) => void;
+  };
 };
 
 export function RecordingStage({
@@ -33,27 +40,36 @@ export function RecordingStage({
   style,
   markerNumber,
   recordingState,
+  previewActive,
   onPointer,
   onClickPulse,
   onAdd,
   onUpdate,
   onRemove,
   onMarkerUsed,
-  areaSelection
+  areaSelection,
+  webcamOverlay
 }: Props) {
   const activeId = useRef<string | null>(null);
   const areaDragStart = useRef<Point | null>(null);
+  const textMove = useRef<{ id: string; start: Point; origin: Point } | null>(null);
+  const webcamDrag = useRef<{ start: Point; origin: Rect } | null>(null);
+  const [editingText, setEditingText] = useState<{ point: Point; value: string } | null>(null);
   const text = useI18n();
 
   function canvasPoint(event: React.PointerEvent<HTMLCanvasElement>): Point {
+    return canvasPointFromClient(event.clientX, event.clientY);
+  }
+
+  function canvasPointFromClient(clientX: number, clientY: number): Point {
     const canvas = canvasRef.current;
     if (!canvas) {
       return { x: 0, y: 0 };
     }
     const rect = canvas.getBoundingClientRect();
     return {
-      x: ((event.clientX - rect.left) / rect.width) * canvas.width,
-      y: ((event.clientY - rect.top) / rect.height) * canvas.height,
+      x: ((clientX - rect.left) / rect.width) * canvas.width,
+      y: ((clientY - rect.top) / rect.height) * canvas.height,
       t: performance.now()
     };
   }
@@ -68,6 +84,10 @@ export function RecordingStage({
     event.currentTarget.setPointerCapture(event.pointerId);
 
     if (tool === "select") {
+      const target = [...annotations].reverse().find((annotation) => annotation.tool === "text" && hitTestAnnotation(annotation, point));
+      if (target?.tool === "text") {
+        textMove.current = { id: target.id, start: point, origin: target.at };
+      }
       return;
     }
     if (tool === "eraser") {
@@ -78,10 +98,7 @@ export function RecordingStage({
       return;
     }
     if (tool === "text") {
-      const annotationText = window.prompt(text.textAnnotationPrompt);
-      if (annotationText) {
-        onAdd({ id: id("text"), tool: "text", at: point, text: annotationText, style });
-      }
+      setEditingText({ point, value: "" });
       return;
     }
     if (tool === "marker") {
@@ -108,6 +125,24 @@ export function RecordingStage({
     }
     const point = canvasPoint(event);
     onPointer(point);
+    const movingText = textMove.current;
+    if (movingText) {
+      const existing = annotations.find((annotation) => annotation.id === movingText.id);
+      if (existing?.tool === "text") {
+        const canvas = canvasRef.current;
+        const maxX = canvas?.width ?? Number.POSITIVE_INFINITY;
+        const maxY = canvas?.height ?? Number.POSITIVE_INFINITY;
+        onUpdate({
+          ...existing,
+          at: {
+            x: clamp(movingText.origin.x + point.x - movingText.start.x, 0, maxX),
+            y: clamp(movingText.origin.y + point.y - movingText.start.y, 0, maxY),
+            t: performance.now()
+          }
+        });
+      }
+      return;
+    }
     const currentId = activeId.current;
     if (!currentId) {
       return;
@@ -132,7 +167,64 @@ export function RecordingStage({
       }
     }
     activeId.current = null;
+    textMove.current = null;
     event.currentTarget.releasePointerCapture(event.pointerId);
+  }
+
+  function webcamPointerDown(event: React.PointerEvent<HTMLDivElement>): void {
+    if (!webcamOverlay?.enabled || tool !== "select" || areaSelection?.enabled) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    const canvas = canvasRef.current;
+    if (!canvas) {
+      return;
+    }
+    event.currentTarget.setPointerCapture(event.pointerId);
+    webcamDrag.current = {
+      start: canvasPointFromClient(event.clientX, event.clientY),
+      origin: positionToNormalized(webcamOverlay.position, canvas.width, canvas.height)
+    };
+  }
+
+  function webcamPointerMove(event: React.PointerEvent<HTMLDivElement>): void {
+    const drag = webcamDrag.current;
+    if (!drag || !webcamOverlay?.enabled) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    const canvas = canvasRef.current;
+    if (!canvas) {
+      return;
+    }
+    const point = canvasPointFromClient(event.clientX, event.clientY);
+    const dx = (point.x - drag.start.x) / Math.max(1, canvas.width);
+    const dy = (point.y - drag.start.y) / Math.max(1, canvas.height);
+    const width = clamp(drag.origin.width, 0.08, 1);
+    const height = clamp(drag.origin.height, 0.08, 1);
+    webcamOverlay.onMove({
+      ...drag.origin,
+      width,
+      height,
+      x: clamp(drag.origin.x + dx, 0, 1 - width),
+      y: clamp(drag.origin.y + dy, 0, 1 - height)
+    });
+  }
+
+  function webcamPointerUp(event: React.PointerEvent<HTMLDivElement>): void {
+    if (!webcamDrag.current) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    webcamDrag.current = null;
+    try {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    } catch {
+      // The platform can release pointer capture first.
+    }
   }
 
   function areaPoint(event: React.PointerEvent<HTMLDivElement>): Point {
@@ -179,6 +271,21 @@ export function RecordingStage({
   const areaLabel = areaSelection?.value
     ? `${text.selectedArea}: ${Math.round(areaSelection.value.width)} x ${Math.round(areaSelection.value.height)}`
     : "";
+  const webcamStyle = webcamOverlay?.enabled
+    ? webcamRectStyle(webcamOverlay.position, canvasRef.current?.width ?? 1920, canvasRef.current?.height ?? 1080)
+    : undefined;
+  const webcamCanDrag = webcamOverlay?.enabled && tool === "select" && !areaSelection?.enabled;
+  const editingTextStyle = editingText
+    ? textEditorStyle(editingText.point, style, canvasRef.current)
+    : undefined;
+
+  function commitEditingText(): void {
+    const value = editingText?.value.trim();
+    if (editingText && value) {
+      onAdd({ id: id("text"), tool: "text", at: editingText.point, text: value, style });
+    }
+    setEditingText(null);
+  }
 
   return (
     <div className="stageShell">
@@ -190,7 +297,7 @@ export function RecordingStage({
         onPointerUp={pointerUp}
         onPointerCancel={pointerUp}
       />
-      {recordingState === "idle" && !areaSelection?.enabled ? (
+      {recordingState === "idle" && !previewActive && !areaSelection?.enabled ? (
         <div className="emptyStage">
           <strong>{text.readyToRecord}</strong>
           <span>{text.readyToRecordHint}</span>
@@ -211,6 +318,43 @@ export function RecordingStage({
             </div>
           ) : null}
         </div>
+      ) : null}
+      {webcamOverlay?.enabled && webcamStyle ? (
+        <div
+          className={`webcamDragFrame ${webcamOverlay.shape === "circle" ? "circle" : "rectangle"} ${webcamCanDrag ? "enabled" : ""}`}
+          style={{
+            ...webcamStyle,
+            pointerEvents: webcamCanDrag ? "auto" : "none"
+          }}
+          title={text.dragWebcamOverlay}
+          onPointerDown={webcamPointerDown}
+          onPointerMove={webcamPointerMove}
+          onPointerUp={webcamPointerUp}
+          onPointerCancel={webcamPointerUp}
+        >
+          <span>{text.webcam}</span>
+        </div>
+      ) : null}
+      {editingText && editingTextStyle ? (
+        <textarea
+          className="previewTextEditor"
+          style={editingTextStyle}
+          autoFocus
+          value={editingText.value}
+          placeholder={text.textAnnotationPrompt}
+          onChange={(event) => setEditingText({ ...editingText, value: event.target.value })}
+          onBlur={commitEditingText}
+          onPointerDown={(event) => event.stopPropagation()}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" && !event.shiftKey) {
+              event.preventDefault();
+              commitEditingText();
+            } else if (event.key === "Escape") {
+              event.preventDefault();
+              setEditingText(null);
+            }
+          }}
+        />
       ) : null}
     </div>
   );
@@ -235,6 +379,51 @@ function rectStyle(rect: Rect, size: { width: number; height: number }): CSSProp
     top: `${(rect.y / size.height) * 100}%`,
     width: `${(rect.width / size.width) * 100}%`,
     height: `${(rect.height / size.height) * 100}%`
+  };
+}
+
+function webcamRectStyle(rect: Rect, canvasWidth: number, canvasHeight: number): CSSProperties {
+  const normalized = positionToNormalized(rect, canvasWidth, canvasHeight);
+  return {
+    left: `${normalized.x * 100}%`,
+    top: `${normalized.y * 100}%`,
+    width: `${normalized.width * 100}%`,
+    height: `${normalized.height * 100}%`
+  };
+}
+
+function textEditorStyle(point: Point, style: AnnotationStyle, canvas: HTMLCanvasElement | null): CSSProperties | undefined {
+  if (!canvas) {
+    return undefined;
+  }
+  const rect = canvas.getBoundingClientRect();
+  const scale = rect.width / Math.max(1, canvas.width);
+  return {
+    left: `${(point.x / Math.max(1, canvas.width)) * 100}%`,
+    top: `${(point.y / Math.max(1, canvas.height)) * 100}%`,
+    minWidth: "180px",
+    minHeight: "44px",
+    fontFamily: style.fontFamily,
+    fontSize: `${Math.max(13, style.fontSize * scale)}px`,
+    fontWeight: style.bold ? 700 : 400,
+    fontStyle: style.italic ? "italic" : "normal",
+    color: style.color,
+    opacity: style.opacity
+  };
+}
+
+function positionToNormalized(rect: Rect, canvasWidth: number, canvasHeight: number): Rect {
+  const width = rect.width <= 1 ? rect.width : rect.width / Math.max(1, canvasWidth);
+  const height = rect.height <= 1 ? rect.height : rect.height / Math.max(1, canvasHeight);
+  const safeWidth = clamp(width, 0.08, 1);
+  const safeHeight = clamp(height, 0.08, 1);
+  const x = rect.x <= 1 ? rect.x : rect.x / Math.max(1, canvasWidth);
+  const y = rect.y <= 1 ? rect.y : rect.y / Math.max(1, canvasHeight);
+  return {
+    x: clamp(x, 0, 1 - safeWidth),
+    y: clamp(y, 0, 1 - safeHeight),
+    width: safeWidth,
+    height: safeHeight
   };
 }
 
