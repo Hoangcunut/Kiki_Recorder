@@ -1,0 +1,88 @@
+{
+  "name": "kiki-recorder",
+  "version": "0.1.4",
+  "description": "Privacy-first cross-platform desktop screen recorder with annotations, webcam overlay, scheduling, local library, and FFmpeg exports.",
+  "author": "KikiRecorder Contributors",
+  "license": "MIT",
+  "main": "dist/main/index.js",
+  "private": true,
+  "scripts": {
+    "dev": "npm run build:main && concurrently -k \"vite --host 127.0.0.1\" \"tsc -p tsconfig.electron.json --watch --preserveWatchOutput\" \"wait-on tcp:5173 dist/main/index.js dist/preload/index.js && node scripts/start-electron-dev.cjs\"",
+    "build": "npm run typecheck && vite build && tsc -p tsconfig.electron.json",
+    "build:main": "tsc -p tsconfig.electron.json",
+    "typecheck": "tsc --noEmit",
+    "dist": "npm run build && electron-builder",
+    "pack": "npm run build && electron-builder --dir"
+  },
+  "dependencies": {
+    "ffmpeg-static": "^5.2.0",
+    "lucide-react": "^0.468.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/react": "^19.0.2",
+    "@types/react-dom": "^19.0.2",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "concurrently": "^9.1.0",
+    "cross-env": "^7.0.3",
+    "electron": "^41.2.0",
+    "electron-builder": "^25.1.8",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.7",
+    "wait-on": "^8.0.1"
+  },
+  "build": {
+    "appId": "app.kiki.recorder",
+    "productName": "KikiRecorder",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "node_modules/ffmpeg-static/**"
+    ],
+    "mac": {
+      "category": "public.app-category.video",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "extendInfo": {
+        "NSCameraUsageDescription": "KikiRecorder uses the camera only when webcam recording or webcam overlay is enabled.",
+        "NSMicrophoneUsageDescription": "KikiRecorder uses the microphone only when microphone audio is enabled.",
+        "NSDesktopFolderUsageDescription": "KikiRecorder saves recordings locally.",
+        "NSDocumentsFolderUsageDescription": "KikiRecorder saves recordings locally.",
+        "NSScreenCaptureUsageDescription": "KikiRecorder needs screen capture permission to record your display.",
+        "NSAudioCaptureUsageDescription": "KikiRecorder can capture system audio when you enable it."
+      }
+    },
+    "win": {
+      "signAndEditExecutable": false,
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "AudioVideo"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "deleteAppDataOnUninstall": false
+    }
+  }
+}

@@ -1,0 +1,1328 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #0f1117;
+  color: #f8fafc;
+  letter-spacing: 0;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  background: #f6f7fb;
+  color: #111827;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 100vw;
+  min-height: 100vh;
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, rgba(45, 212, 191, 0.12), transparent 32%),
+    linear-gradient(315deg, rgba(244, 63, 94, 0.12), transparent 30%),
+    var(--app-bg, #0f1117);
+}
+
+[data-overlay="region"],
+[data-overlay="recording"],
+[data-overlay="surface"],
+[data-overlay="region"] body,
+[data-overlay="recording"] body,
+[data-overlay="surface"] body {
+  background: transparent;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+[data-overlay="region"] #root,
+[data-overlay="recording"] #root,
+[data-overlay="surface"] #root {
+  width: 100vw;
+  height: 100vh;
+}
+
+[data-theme="light"] body {
+  --app-bg: #f6f7fb;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button {
+  border: 0;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+input,
+select {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: rgba(15, 23, 42, 0.56);
+  color: inherit;
+  outline: none;
+}
+
+[data-theme="light"] input,
+[data-theme="light"] select {
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.14);
+}
+
+label {
+  display: grid;
+  gap: 7px;
+  color: rgba(226, 232, 240, 0.74);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+[data-theme="light"] label {
+  color: rgba(15, 23, 42, 0.68);
+}
+
+.appShell {
+  display: grid;
+  grid-template-columns: 230px 1fr;
+  width: 100vw;
+  height: 100vh;
+}
+
+.navRail {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  padding: 24px 16px;
+  border-right: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(5, 7, 11, 0.72);
+  backdrop-filter: blur(20px);
+}
+
+[data-theme="light"] .navRail {
+  background: rgba(255, 255, 255, 0.84);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 42px;
+  padding: 0 8px;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.brand svg {
+  color: #2dd4bf;
+}
+
+.navButtons {
+  display: grid;
+  gap: 7px;
+}
+
+.navButtons button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 42px;
+  border-radius: 8px;
+  padding: 0 12px;
+  background: transparent;
+  color: rgba(226, 232, 240, 0.74);
+  text-align: left;
+}
+
+[data-theme="light"] .navButtons button {
+  color: rgba(15, 23, 42, 0.68);
+}
+
+.navButtons button.active,
+.navButtons button:hover {
+  background: rgba(45, 212, 191, 0.12);
+  color: #f8fafc;
+}
+
+[data-theme="light"] .navButtons button.active,
+[data-theme="light"] .navButtons button:hover {
+  color: #0f172a;
+}
+
+.mainArea {
+  min-width: 0;
+  min-height: 0;
+  padding: 18px;
+  overflow: hidden;
+}
+
+.recordLayout {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 18px;
+  height: 100%;
+}
+
+.sidePanel,
+.workspacePanel {
+  min-height: 0;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 12px;
+  background: rgba(15, 18, 27, 0.82);
+  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(20px);
+}
+
+[data-theme="light"] .sidePanel,
+[data-theme="light"] .workspacePanel {
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 16px 50px rgba(15, 23, 42, 0.08);
+}
+
+.sidePanel {
+  overflow: auto;
+  padding: 16px;
+}
+
+.panelHeader,
+.workspaceHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+.panelHeader h2,
+.workspaceHeader h2 {
+  font-size: 22px;
+  font-weight: 820;
+}
+
+.panelHeader p,
+.workspaceHeader p,
+.libraryBody p,
+.scheduleItem p {
+  margin-top: 4px;
+  color: rgba(148, 163, 184, 0.9);
+  font-size: 13px;
+}
+
+.panelSection {
+  display: grid;
+  gap: 10px;
+  padding: 14px 0;
+  border-top: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.panelSection h3,
+.controlBlock h3 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  color: rgba(226, 232, 240, 0.9);
+  text-transform: uppercase;
+}
+
+[data-theme="light"] .panelSection h3,
+[data-theme="light"] .controlBlock h3 {
+  color: rgba(15, 23, 42, 0.82);
+}
+
+.segmented {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.segmented.fixed {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.segmented button {
+  display: grid;
+  place-items: center;
+  gap: 5px;
+  min-height: 58px;
+  border-radius: 8px;
+  background: rgba(148, 163, 184, 0.08);
+  color: rgba(226, 232, 240, 0.76);
+  font-size: 12px;
+}
+
+.segmented button.selected {
+  background: rgba(45, 212, 191, 0.18);
+  color: #f8fafc;
+  outline: 1px solid rgba(45, 212, 191, 0.5);
+}
+
+[data-theme="light"] .segmented button {
+  color: rgba(15, 23, 42, 0.72);
+}
+
+[data-theme="light"] .segmented button.selected {
+  color: #0f172a;
+}
+
+.sourceGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.sourceTile {
+  display: grid;
+  gap: 6px;
+  border-radius: 8px;
+  padding: 6px;
+  background: rgba(148, 163, 184, 0.08);
+  color: inherit;
+  text-align: left;
+}
+
+.sourceTile.active {
+  outline: 2px solid #2dd4bf;
+}
+
+.sourceTile img {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  border-radius: 6px;
+  background: #05070b;
+}
+
+.sourceTile span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 11px;
+}
+
+.gridTwo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.switchRow {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 9px;
+  min-height: 36px;
+}
+
+.switchRow input {
+  width: 18px;
+  min-height: 18px;
+}
+
+.recordButtons {
+  position: sticky;
+  bottom: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding-top: 12px;
+  background: linear-gradient(transparent, rgba(15, 18, 27, 0.95) 25%);
+}
+
+[data-theme="light"] .recordButtons {
+  background: linear-gradient(transparent, rgba(255, 255, 255, 0.95) 25%);
+}
+
+.primaryButton,
+.secondaryButton,
+.dangerButton,
+.textButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  border-radius: 8px;
+  padding: 0 14px;
+  color: #f8fafc;
+  font-weight: 760;
+}
+
+.primaryButton {
+  background: #0d9488;
+}
+
+.secondaryButton {
+  background: rgba(148, 163, 184, 0.14);
+}
+
+.dangerButton {
+  background: #e11d48;
+}
+
+.textButton {
+  background: rgba(148, 163, 184, 0.1);
+}
+
+.textButton.active,
+.iconButton.active {
+  background: rgba(45, 212, 191, 0.2);
+  color: #f8fafc;
+}
+
+[data-theme="light"] .secondaryButton,
+[data-theme="light"] .textButton {
+  color: #0f172a;
+  background: rgba(15, 23, 42, 0.08);
+}
+
+.recordWorkspace {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-width: 0;
+  min-height: 0;
+  gap: 12px;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  overflow-x: auto;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 12px;
+  padding: 9px;
+  background: rgba(15, 18, 27, 0.82);
+}
+
+[data-theme="light"] .toolbar {
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.toolGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding-right: 8px;
+  border-right: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.toolGroup:last-child {
+  border-right: 0;
+}
+
+.iconButton {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: rgba(148, 163, 184, 0.1);
+  color: rgba(226, 232, 240, 0.84);
+}
+
+.iconButton.danger {
+  color: #fb7185;
+}
+
+[data-theme="light"] .iconButton {
+  color: #0f172a;
+  background: rgba(15, 23, 42, 0.07);
+}
+
+.compactField {
+  display: inline-grid;
+  width: 38px;
+}
+
+.compactField input {
+  width: 34px;
+  min-height: 34px;
+  padding: 3px;
+}
+
+.rangeField {
+  display: grid;
+  grid-template-columns: 42px 90px;
+  align-items: center;
+  gap: 6px;
+}
+
+.rangeField input {
+  min-height: 28px;
+  padding: 0;
+}
+
+.pill {
+  min-width: 54px;
+  border-radius: 999px;
+  padding: 7px 10px;
+  background: rgba(148, 163, 184, 0.1);
+  text-align: center;
+  font-size: 12px;
+  font-weight: 760;
+}
+
+.stageShell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 12px;
+  background: #05070b;
+}
+
+.recordingCanvas {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  touch-action: none;
+}
+
+.emptyStage {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 8px;
+  padding: 24px;
+  color: rgba(226, 232, 240, 0.8);
+  text-align: center;
+  pointer-events: none;
+}
+
+.emptyStage strong {
+  font-size: 24px;
+}
+
+.emptyStage span {
+  max-width: 520px;
+  color: rgba(148, 163, 184, 0.92);
+}
+
+.emptyStage.small {
+  position: relative;
+  min-height: 360px;
+  border: 1px dashed rgba(148, 163, 184, 0.3);
+  border-radius: 12px;
+}
+
+.areaPickerLayer {
+  position: absolute;
+  inset: 0;
+  cursor: crosshair;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    rgba(5, 7, 11, 0.42);
+  background-size: 48px 48px;
+  touch-action: none;
+  user-select: none;
+}
+
+.areaSelectionBox {
+  position: absolute;
+  min-width: 12px;
+  min-height: 12px;
+  border: 2px solid #2dd4bf;
+  background: rgba(45, 212, 191, 0.12);
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.46);
+}
+
+.areaSizeBadge,
+.areaHint {
+  border-radius: 8px;
+  padding: 7px 10px;
+  background: rgba(5, 7, 11, 0.76);
+  color: #f8fafc;
+  font-size: 12px;
+  font-weight: 760;
+  white-space: nowrap;
+}
+
+.areaSizeBadge {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+}
+
+.areaHint {
+  position: absolute;
+  left: 50%;
+  top: 18px;
+  transform: translateX(-50%);
+  border: 1px solid rgba(45, 212, 191, 0.38);
+}
+
+.errorBanner {
+  border: 1px solid rgba(244, 63, 94, 0.4);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: rgba(244, 63, 94, 0.12);
+  color: #fecdd3;
+}
+
+.workspacePanel {
+  height: 100%;
+  overflow: auto;
+  padding: 20px;
+}
+
+.workspacePanel.narrow {
+  max-width: 780px;
+}
+
+.libraryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 12px;
+}
+
+.libraryItem,
+.scheduleItem {
+  display: grid;
+  grid-template-columns: 92px 1fr auto;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 10px;
+  padding: 12px;
+  background: rgba(148, 163, 184, 0.06);
+}
+
+.mediaThumb {
+  display: grid;
+  place-items: center;
+  gap: 4px;
+  height: 62px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(45, 212, 191, 0.24), rgba(244, 63, 94, 0.2));
+}
+
+.mediaThumb span {
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.libraryBody,
+.scheduleItem div {
+  min-width: 0;
+}
+
+.libraryBody h3,
+.scheduleItem h3 {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 15px;
+}
+
+.libraryBody span,
+.fileHint,
+.fieldHint,
+.selectedPath {
+  color: rgba(148, 163, 184, 0.92);
+  font-size: 12px;
+  word-break: break-all;
+}
+
+.regionOverlay {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    rgba(2, 6, 23, 0.28);
+  background-size: 48px 48px;
+  color: #f8fafc;
+  cursor: crosshair;
+  outline: none;
+  touch-action: none;
+  user-select: none;
+}
+
+.regionTopBar,
+.regionActions,
+.regionBadge {
+  border: 1px solid rgba(45, 212, 191, 0.34);
+  border-radius: 8px;
+  background: rgba(5, 7, 11, 0.82);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(16px);
+}
+
+.regionTopBar {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  z-index: 4;
+  display: grid;
+  gap: 4px;
+  min-width: min(520px, calc(100vw - 32px));
+  padding: 10px 14px;
+  transform: translateX(-50%);
+  text-align: center;
+  pointer-events: none;
+}
+
+.regionTopBar strong {
+  font-size: 14px;
+}
+
+.regionTopBar span {
+  color: rgba(203, 213, 225, 0.86);
+  font-size: 12px;
+}
+
+.regionBox {
+  position: absolute;
+  z-index: 3;
+  min-width: 64px;
+  min-height: 64px;
+  border: 2px solid #2dd4bf;
+  background: rgba(45, 212, 191, 0.12);
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.26) inset;
+  cursor: move;
+}
+
+.regionBadge {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  padding: 7px 10px;
+  color: #f8fafc;
+  font-size: 12px;
+  font-weight: 760;
+  white-space: nowrap;
+}
+
+.regionHandle {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #0f172a;
+  border-radius: 999px;
+  background: #2dd4bf;
+}
+
+.regionHandle.n,
+.regionHandle.s {
+  left: 50%;
+  transform: translateX(-50%);
+  cursor: ns-resize;
+}
+
+.regionHandle.e,
+.regionHandle.w {
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: ew-resize;
+}
+
+.regionHandle.n {
+  top: -9px;
+}
+
+.regionHandle.s {
+  bottom: -9px;
+}
+
+.regionHandle.e {
+  right: -9px;
+}
+
+.regionHandle.w {
+  left: -9px;
+}
+
+.regionHandle.ne,
+.regionHandle.nw,
+.regionHandle.se,
+.regionHandle.sw {
+  cursor: nwse-resize;
+}
+
+.regionHandle.ne {
+  top: -9px;
+  right: -9px;
+  cursor: nesw-resize;
+}
+
+.regionHandle.nw {
+  top: -9px;
+  left: -9px;
+}
+
+.regionHandle.se {
+  right: -9px;
+  bottom: -9px;
+}
+
+.regionHandle.sw {
+  left: -9px;
+  bottom: -9px;
+  cursor: nesw-resize;
+}
+
+.regionActions {
+  position: absolute;
+  left: 50%;
+  bottom: 20px;
+  z-index: 4;
+  display: inline-flex;
+  gap: 10px;
+  padding: 10px;
+  transform: translateX(-50%);
+  cursor: default;
+}
+
+.recordingSurfaceRoot,
+.recordingToolboxRoot {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  outline: none;
+  user-select: none;
+}
+
+.recordingSurfaceRoot {
+  touch-action: none;
+}
+
+.recordingSurfaceRoot.drawingEnabled {
+  cursor: crosshair;
+}
+
+.recordingCaptureFrame {
+  position: absolute;
+  border: 1px solid rgba(52, 211, 153, 0.32);
+  background: rgba(52, 211, 153, 0.02);
+  pointer-events: none;
+}
+
+.recordingSurfaceRoot:not(.drawingEnabled) .recordingCaptureFrame {
+  border-color: transparent;
+  background: transparent;
+}
+
+.recordingAnnotationCanvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.recordingToolboxRoot {
+  display: flex;
+  align-items: flex-start;
+  color: #f1f5f9;
+  pointer-events: none;
+  background: #0f141e;
+}
+
+.recordingToolbox {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  pointer-events: auto;
+  -webkit-app-region: no-drag;
+}
+
+.toolboxMainRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 52px;
+  padding: 6px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  background: rgba(15, 20, 30, 0.76);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(20px) saturate(160%);
+}
+
+.toolboxGrip,
+.toolboxIconButton,
+.toolboxTextButton {
+  display: inline-grid;
+  place-items: center;
+  height: 38px;
+  min-width: 38px;
+  border-radius: 8px;
+  background: transparent;
+  color: rgba(241, 245, 249, 0.94);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.toolboxGrip {
+  color: rgba(148, 163, 184, 0.7);
+  cursor: grab;
+  width: 34px;
+  min-width: 34px;
+}
+
+.toolboxGrip.nativeDrag {
+  -webkit-app-region: drag;
+}
+
+.toolboxGrip:active {
+  cursor: grabbing;
+}
+
+.toolboxIconButton,
+.toolboxTextButton,
+.toolboxDrawingPanel,
+.toolboxPanelSection {
+  -webkit-app-region: no-drag;
+}
+
+.toolboxIconButton:hover,
+.toolboxGrip:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.toolboxIconButton.active {
+  color: #a855f7;
+  background: rgba(168, 85, 247, 0.16);
+  box-shadow: 0 0 0 1px rgba(168, 85, 247, 0.3) inset;
+}
+
+.toolboxIconButton.underlined {
+  position: relative;
+}
+
+.toolboxIconButton.underlined.active::after,
+.toolboxIconButton.toolButton.active::after {
+  content: "";
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 3px;
+  height: 2px;
+  border-radius: 999px;
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+}
+
+.toolboxIconButton.pencilButton.active {
+  background: linear-gradient(135deg, #a855f7 0%, #6366f1 100%);
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.4);
+}
+
+.toolboxIconButton.pencilButton.active::after {
+  display: none;
+}
+
+.toolboxIconButton.eye.active {
+  color: #c084fc;
+}
+
+.toolboxIconButton:disabled {
+  opacity: 0.3;
+}
+
+.toolboxIconButton.muted {
+  color: rgba(148, 163, 184, 0.6);
+}
+
+.toolboxIconButton.eye {
+  color: rgba(148, 163, 184, 0.7);
+}
+
+.toolboxIconButton.close {
+  color: rgba(248, 250, 252, 0.8);
+  margin-left: auto;
+}
+
+.toolboxIconButton.close:hover {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+.toolboxTextButton {
+  grid-auto-flow: column;
+  gap: 6px;
+  min-width: auto;
+  padding: 0 10px;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.toolboxTextButton:hover {
+  transform: translateY(-1px);
+}
+
+.toolboxTextButton.pauseButton {
+  background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+  box-shadow: 0 0 8px rgba(124, 58, 237, 0.3);
+}
+
+.toolboxTextButton.stopButton {
+  background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.3);
+}
+
+.toolboxTimer {
+  position: relative;
+  min-width: 80px;
+  padding-left: 14px;
+  color: rgba(241, 245, 249, 0.95);
+  text-align: center;
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.toolboxTextInput {
+  height: 32px;
+  min-width: 140px;
+  max-width: 200px;
+  padding: 0 12px;
+  border: 1px solid rgba(45, 212, 191, 0.4);
+  border-radius: 8px;
+  background: rgba(15, 20, 30, 0.9);
+  color: #f1f5f9;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+  pointer-events: auto;
+  -webkit-app-region: no-drag;
+}
+
+.toolboxTextInput:focus {
+  border-color: #2dd4bf;
+  box-shadow: 0 0 0 2px rgba(45, 212, 191, 0.2);
+}
+
+.toolboxTextInput::placeholder {
+  color: rgba(148, 163, 184, 0.5);
+}
+
+@keyframes pulse {
+  0% {
+    transform: translateY(-50%) scale(1);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+  }
+  70% {
+    transform: translateY(-50%) scale(1.15);
+    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+  }
+  100% {
+    transform: translateY(-50%) scale(1);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+.toolboxTimer::before {
+  content: "";
+  position: absolute;
+  left: 0px;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #ef4444;
+  transform: translateY(-50%);
+  animation: pulse 1.8s infinite;
+}
+
+.toolboxDrawingPanel {
+  display: grid;
+  align-self: center;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  width: 100%;
+  min-height: auto;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 10px 12px;
+  background: rgba(15, 20, 30, 0.78);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(20px) saturate(160%);
+}
+
+.toolboxPanelSection {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  border: 0;
+  border-radius: 8px;
+  padding: 0;
+  background: transparent;
+}
+
+.toolGrid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 5px;
+  width: 100%;
+}
+
+.toolGrid .toolboxIconButton {
+  width: 100%;
+  height: 32px;
+  min-width: 0;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 6px;
+}
+
+.toolGrid .toolboxIconButton:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.toolGrid .toolboxIconButton.active {
+  background: rgba(168, 85, 247, 0.22);
+  border-color: rgba(168, 85, 247, 0.5);
+  color: #c084fc;
+}
+
+.stylePanel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.stylePanel input[type="color"] {
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  min-height: 28px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.stylePanel label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: rgba(226, 232, 240, 0.85);
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.stylePanel input[type="range"] {
+  width: 55px;
+  min-height: auto;
+  height: 4px;
+  padding: 0;
+  cursor: pointer;
+  accent-color: #a855f7;
+}
+
+.stylePanel select {
+  width: 100px;
+  height: 28px;
+  min-height: 28px;
+  padding: 2px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  background: rgba(30, 35, 45, 0.8);
+  color: rgba(241, 245, 249, 0.95);
+  font-size: 11px;
+}
+
+.stylePanel .toolboxIconButton {
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  border-radius: 6px;
+}
+
+.effectsPanel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.toolboxTextButton.compactText {
+  height: 28px;
+  padding: 0 8px;
+  font-size: 11px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.libraryActions {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.editorLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 390px;
+  gap: 18px;
+  min-height: 0;
+}
+
+.editorMedia video {
+  width: 100%;
+  max-height: 68vh;
+  border-radius: 12px;
+  background: #05070b;
+}
+
+.editorControls {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+}
+
+.controlBlock {
+  display: grid;
+  gap: 10px;
+  border-top: 1px solid rgba(148, 163, 184, 0.14);
+  padding-top: 14px;
+}
+
+.scheduleComposer {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr auto;
+  align-items: end;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.scheduleList {
+  display: grid;
+  gap: 10px;
+}
+
+.scheduleItem {
+  grid-template-columns: auto 1fr auto;
+}
+
+.subtleSection {
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(148, 163, 184, 0.08);
+  color: rgba(148, 163, 184, 0.96);
+  font-size: 13px;
+}
+
+.emptyList {
+  display: grid;
+  place-items: center;
+  min-height: 220px;
+  color: rgba(148, 163, 184, 0.9);
+}
+
+.toolboxHiddenHoverStrip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 8px;
+  background: rgba(45, 212, 191, 0.4);
+  backdrop-filter: blur(4px);
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+
+.toolboxHiddenHoverStrip:hover {
+  background: rgba(45, 212, 191, 0.8);
+}
+
+.toolboxMinimized {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(15, 20, 30, 0.85);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #f8fafc;
+  cursor: pointer;
+  transition: all 0.2s;
+  -webkit-app-region: drag;
+}
+
+.toolboxMinimized:hover {
+  background: rgba(45, 212, 191, 0.2);
+  color: #2dd4bf;
+  border-color: rgba(45, 212, 191, 0.4);
+}
+
+@media (max-width: 1100px) {
+  .appShell {
+    grid-template-columns: 76px 1fr;
+  }
+
+  .brand span,
+  .navButtons button {
+    font-size: 0;
+  }
+
+  .navButtons button {
+    justify-content: center;
+  }
+
+  .recordLayout,
+  .editorLayout {
+    grid-template-columns: 1fr;
+    overflow: auto;
+  }
+
+  .sidePanel {
+    max-height: 46vh;
+  }
+}
