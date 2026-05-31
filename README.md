@@ -86,3 +86,11 @@ The toolbox is intentionally separate from the main app window. Starting a recor
 - On Windows, the app starts with software rendering/GPU fallback switches to avoid black-screen or renderer-crash cases caused by unstable GPU drivers or restricted display environments.
 - If recording does not start, reselect the source/area and check OS screen-recording permission. The app uses Electron `setDisplayMediaRequestHandler` plus `getDisplayMedia()` as the primary capture path, with a legacy desktop capture fallback for diagnosis.
 - If toolbox does not appear, first check that the left button changed from Start to Stop and the timer is running. The toolbox opens only after the recorder actually enters recording/countdown; if capture permission fails, the app stays on the setup screen and shows an error banner.
+
+## License
+
+MIT License. See [LICENSE](LICENSE).
+
+## Donate
+
+![Donate](assets/donate2.png)
