@@ -11,6 +11,9 @@ KikiRecorder là ứng dụng desktop ghi màn hình đa nền tảng dùng Elec
 ```text
 .
 |-- index.html
+|-- .github/
+|   `-- workflows/
+|       `-- release.yml
 |-- package.json
 |-- scripts/
 |   `-- start-electron-dev.cjs
@@ -43,6 +46,7 @@ KikiRecorder là ứng dụng desktop ghi màn hình đa nền tảng dùng Elec
 
 - `src/main/index.ts`: Electron main process, tạo cửa sổ chính, overlay chọn vùng, toolbox khi quay, surface vẽ trong suốt, đăng ký IPC, lấy nguồn màn hình/cửa sổ, hotkey, lịch ghi và quyền hệ thống.
 - `src/main/ffmpeg.ts`: chạy FFmpeg để chuyển WebM ghi thô sang MP4 mặc định và export MP4, WEBM, GIF, AVI, MOV.
+- `.github/workflows/release.yml`: workflow GitHub Actions chạy khi push tag `v*`, build Windows bằng `npm run dist` và upload installer/portable `.exe` lên GitHub Release tương ứng.
 - `src/preload/index.ts`: bridge IPC an toàn giữa renderer và main process, gồm API chọn vùng desktop, lưu video và điều khiển recording overlay/toolbox.
 - `src/renderer/App.tsx`: state chính của UI, start/stop/pause recorder, nhận event từ toolbox/surface, quản lý thư viện, lịch ghi, settings và danh sách thiết bị webcam đầu vào.
 - `src/renderer/components/RegionOverlayApp.tsx`: overlay trong suốt phủ màn hình để kéo chọn, di chuyển và resize vùng ghi trước khi bắt đầu.
