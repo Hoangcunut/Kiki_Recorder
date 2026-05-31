@@ -13,18 +13,22 @@ import {
   Volume2
 } from "lucide-react";
 import type { ComponentType } from "react";
-import { CaptureSource, RecordingSettings, Rect } from "../../shared/types";
+import { CaptureSource, RecordingSettings, Rect, WebcamRotation } from "../../shared/types";
 import { qualityPresets } from "../defaults";
 import { useI18n } from "../i18n";
 
 type Props = {
   settings: RecordingSettings;
   sources: CaptureSource[];
+  webcamDevices: MediaDeviceInfo[];
+  microphoneDevices: MediaDeviceInfo[];
   state: string;
   elapsed: number;
   countdown: number;
   onSettings: (settings: RecordingSettings) => void;
   onRefreshSources: () => void;
+  onRefreshWebcamDevices: () => void;
+  onRefreshMicrophoneDevices: () => void;
   onSelectRegion: () => void;
   onStart: () => void;
   onPauseResume: () => void;
@@ -36,11 +40,15 @@ type Props = {
 export function RecorderPanel({
   settings,
   sources,
+  webcamDevices,
+  microphoneDevices,
   state,
   elapsed,
   countdown,
   onSettings,
   onRefreshSources,
+  onRefreshWebcamDevices,
+  onRefreshMicrophoneDevices,
   onSelectRegion,
   onStart,
   onPauseResume,
@@ -223,6 +231,24 @@ export function RecorderPanel({
 
       <section className="panelSection">
         <h3>{text.audio}</h3>
+        <button className="secondaryButton" onClick={onRefreshMicrophoneDevices}>
+          <RefreshCw size={17} />
+          {text.refreshMicrophoneDevices}
+        </button>
+        <label>
+          <span>{text.microphoneDevice}</span>
+          <select
+            value={settings.audio.microphoneDeviceId ?? ""}
+            onChange={(event) => patch({ audio: { ...settings.audio, microphoneDeviceId: event.target.value || undefined } })}
+          >
+            <option value="">{text.useSystemDefault}</option>
+            {microphoneDevices.map((device, index) => (
+              <option key={device.deviceId || `microphone-${index}`} value={device.deviceId}>
+                {device.label || `${text.microphone} ${index + 1}`}
+              </option>
+            ))}
+          </select>
+        </label>
         <label className="switchRow">
           <Volume2 size={17} />
           <span>{text.systemAudio}</span>
@@ -260,7 +286,37 @@ export function RecorderPanel({
             onChange={(event) => patch({ webcam: { ...settings.webcam, enabled: event.target.checked } })}
           />
         </label>
+        <button className="secondaryButton" onClick={onRefreshWebcamDevices}>
+          <RefreshCw size={17} />
+          {text.refreshWebcamDevices}
+        </button>
         <div className="gridTwo">
+          <label>
+            <span>{text.webcamDevice}</span>
+            <select
+              value={settings.webcam.deviceId ?? ""}
+              onChange={(event) => patch({ webcam: { ...settings.webcam, deviceId: event.target.value || undefined } })}
+            >
+              <option value="">{text.useSystemDefault}</option>
+              {webcamDevices.map((device, index) => (
+                <option key={device.deviceId || `camera-${index}`} value={device.deviceId}>
+                  {device.label || `${text.camera} ${index + 1}`}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span>{text.webcamRotation}</span>
+            <select
+              value={String(settings.webcam.rotation ?? 0)}
+              onChange={(event) => patch({ webcam: { ...settings.webcam, rotation: Number(event.target.value) as WebcamRotation } })}
+            >
+              <option value="0">0 deg</option>
+              <option value="90">90 deg</option>
+              <option value="180">180 deg</option>
+              <option value="270">270 deg</option>
+            </select>
+          </label>
           <label>
             <span>{text.shape}</span>
             <select

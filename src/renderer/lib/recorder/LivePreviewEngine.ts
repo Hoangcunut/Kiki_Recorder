@@ -163,14 +163,29 @@ async function getWebcamStream(settings: RecordingSettings): Promise<MediaStream
   if (!settings.webcam.enabled && settings.mode !== "webcam") {
     return undefined;
   }
-  return navigator.mediaDevices.getUserMedia({
-    video: {
-      deviceId: settings.webcam.deviceId ? { exact: settings.webcam.deviceId } : undefined,
-      width: { ideal: 1280 },
-      height: { ideal: 720 }
-    },
-    audio: false
-  });
+  try {
+    return await navigator.mediaDevices.getUserMedia({
+      video: webcamConstraints(settings, true),
+      audio: false
+    });
+  } catch (error) {
+    if (!settings.webcam.deviceId) {
+      throw error;
+    }
+    console.warn("Selected webcam is unavailable; falling back to the system default camera.", error);
+    return navigator.mediaDevices.getUserMedia({
+      video: webcamConstraints(settings, false),
+      audio: false
+    });
+  }
+}
+
+function webcamConstraints(settings: RecordingSettings, includeDevice: boolean): MediaTrackConstraints {
+  return {
+    deviceId: includeDevice && settings.webcam.deviceId ? { exact: settings.webcam.deviceId } : undefined,
+    width: { ideal: 1280 },
+    height: { ideal: 720 }
+  };
 }
 
 function describeError(cause: unknown): string {

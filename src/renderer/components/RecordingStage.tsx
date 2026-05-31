@@ -5,6 +5,14 @@ import { id } from "../lib/id";
 import { hitTestAnnotation } from "../lib/annotations/renderAnnotations";
 import { useI18n } from "../i18n";
 
+type WebcamResizeHandle = "n" | "e" | "s" | "w" | "ne" | "nw" | "se" | "sw";
+type WebcamDragState = {
+  mode: "move" | "resize";
+  handle?: WebcamResizeHandle;
+  start: Point;
+  origin: Rect;
+};
+
 type Props = {
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
   annotations: Annotation[];
@@ -53,7 +61,7 @@ export function RecordingStage({
   const activeId = useRef<string | null>(null);
   const areaDragStart = useRef<Point | null>(null);
   const textMove = useRef<{ id: string; start: Point; origin: Point } | null>(null);
-  const webcamDrag = useRef<{ start: Point; origin: Rect } | null>(null);
+  const webcamDrag = useRef<WebcamDragState | null>(null);
   const textEditorRef = useRef<HTMLTextAreaElement | null>(null);
   const [editingText, setEditingText] = useState<{ point: Point; value: string } | null>(null);
   const text = useI18n();
@@ -195,7 +203,10 @@ export function RecordingStage({
       return;
     }
     event.currentTarget.setPointerCapture(event.pointerId);
+    const handle = (event.target as HTMLElement).dataset.webcamHandle as WebcamResizeHandle | undefined;
     webcamDrag.current = {
+      mode: handle ? "resize" : "move",
+      handle,
       start: canvasPointFromClient(event.clientX, event.clientY),
       origin: positionToNormalized(webcamOverlay.position, canvas.width, canvas.height)
     };
@@ -215,15 +226,11 @@ export function RecordingStage({
     const point = canvasPointFromClient(event.clientX, event.clientY);
     const dx = (point.x - drag.start.x) / Math.max(1, canvas.width);
     const dy = (point.y - drag.start.y) / Math.max(1, canvas.height);
-    const width = clamp(drag.origin.width, 0.08, 1);
-    const height = clamp(drag.origin.height, 0.08, 1);
-    webcamOverlay.onMove({
-      ...drag.origin,
-      width,
-      height,
-      x: clamp(drag.origin.x + dx, 0, 1 - width),
-      y: clamp(drag.origin.y + dy, 0, 1 - height)
-    });
+    const next =
+      drag.mode === "resize" && drag.handle
+        ? resizeWebcamRect(drag.origin, drag.handle, dx, dy)
+        : moveWebcamRect(drag.origin, dx, dy);
+    webcamOverlay.onMove(next);
   }
 
   function webcamPointerUp(event: React.PointerEvent<HTMLDivElement>): void {
@@ -345,6 +352,13 @@ export function RecordingStage({
           onPointerUp={webcamPointerUp}
           onPointerCancel={webcamPointerUp}
         >
+          {webcamCanDrag ? (
+            <>
+              {(["n", "e", "s", "w", "ne", "nw", "se", "sw"] as WebcamResizeHandle[]).map((handle) => (
+                <i key={handle} className={`webcamResizeHandle ${handle}`} data-webcam-handle={handle} />
+              ))}
+            </>
+          ) : null}
           <span>{text.webcam}</span>
         </div>
       ) : null}
@@ -428,8 +442,8 @@ function textEditorStyle(point: Point, style: AnnotationStyle, canvas: HTMLCanva
 function positionToNormalized(rect: Rect, canvasWidth: number, canvasHeight: number): Rect {
   const width = rect.width <= 1 ? rect.width : rect.width / Math.max(1, canvasWidth);
   const height = rect.height <= 1 ? rect.height : rect.height / Math.max(1, canvasHeight);
-  const safeWidth = clamp(width, 0.08, 1);
-  const safeHeight = clamp(height, 0.08, 1);
+  const safeWidth = clamp(width, 0.05, 1);
+  const safeHeight = clamp(height, 0.05, 1);
   const x = rect.x <= 1 ? rect.x : rect.x / Math.max(1, canvasWidth);
   const y = rect.y <= 1 ? rect.y : rect.y / Math.max(1, canvasHeight);
   return {
@@ -437,6 +451,50 @@ function positionToNormalized(rect: Rect, canvasWidth: number, canvasHeight: num
     y: clamp(y, 0, 1 - safeHeight),
     width: safeWidth,
     height: safeHeight
+  };
+}
+
+function moveWebcamRect(origin: Rect, dx: number, dy: number): Rect {
+  const width = clamp(origin.width, 0.05, 1);
+  const height = clamp(origin.height, 0.05, 1);
+  return {
+    ...origin,
+    width,
+    height,
+    x: clamp(origin.x + dx, 0, 1 - width),
+    y: clamp(origin.y + dy, 0, 1 - height)
+  };
+}
+
+function resizeWebcamRect(origin: Rect, handle: WebcamResizeHandle, dx: number, dy: number): Rect {
+  const minSize = 0.05;
+  let x = origin.x;
+  let y = origin.y;
+  let width = origin.width;
+  let height = origin.height;
+
+  if (handle.includes("e")) {
+    width = clamp(origin.width + dx, minSize, 1 - origin.x);
+  }
+  if (handle.includes("s")) {
+    height = clamp(origin.height + dy, minSize, 1 - origin.y);
+  }
+  if (handle.includes("w")) {
+    const right = origin.x + origin.width;
+    x = clamp(origin.x + dx, 0, right - minSize);
+    width = right - x;
+  }
+  if (handle.includes("n")) {
+    const bottom = origin.y + origin.height;
+    y = clamp(origin.y + dy, 0, bottom - minSize);
+    height = bottom - y;
+  }
+
+  return {
+    x: clamp(x, 0, 1 - width),
+    y: clamp(y, 0, 1 - height),
+    width: clamp(width, minSize, 1 - x),
+    height: clamp(height, minSize, 1 - y)
   };
 }
 

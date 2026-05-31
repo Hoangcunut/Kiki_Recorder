@@ -44,6 +44,7 @@ export type RecordingMode =
   | "webcam";
 
 export type WebcamShape = "rectangle" | "circle";
+export type WebcamRotation = 0 | 90 | 180 | 270;
 export type BackgroundEffect = "none" | "blur" | "virtual";
 export type ExportFormat = "mp4" | "webm" | "gif" | "avi" | "mov";
 export type RecordingOutputFormat = "mp4" | "webm";
@@ -60,6 +61,7 @@ export type QualityPreset = {
 export type AudioSettings = {
   system: boolean;
   microphone: boolean;
+  microphoneDeviceId?: string;
   pushToTalk: boolean;
   pushToTalkKey: string;
   gain: number;
@@ -70,6 +72,7 @@ export type WebcamSettings = {
   webcamOnly: boolean;
   deviceId?: string;
   shape: WebcamShape;
+  rotation: WebcamRotation;
   position: Rect;
   opacity: number;
   backgroundEffect: BackgroundEffect;

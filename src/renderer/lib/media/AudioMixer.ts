@@ -39,14 +39,7 @@ export class AudioMixer {
     }
 
     try {
-      const micStream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
-        },
-        video: false
-      });
+      const micStream = await getMicrophoneStream(settings);
       this.ownedStreams.push(micStream);
       this.micGain = this.context.createGain();
       this.micGain.gain.value = settings.pushToTalk ? 0 : settings.gain;
@@ -115,9 +108,33 @@ export class AudioMixer {
     }
     this.ownedStreams = [];
     void this.context?.close();
+    this.micGain = undefined;
+    this.systemGain = undefined;
     this.context = undefined;
     this.destination = undefined;
   }
+}
+
+async function getMicrophoneStream(settings: AudioSettings): Promise<MediaStream> {
+  const constraints = microphoneConstraints(settings, true);
+  try {
+    return await navigator.mediaDevices.getUserMedia({ audio: constraints, video: false });
+  } catch (error) {
+    if (!settings.microphoneDeviceId) {
+      throw error;
+    }
+    console.warn("Selected microphone is unavailable; falling back to the system default microphone.", error);
+    return navigator.mediaDevices.getUserMedia({ audio: microphoneConstraints(settings, false), video: false });
+  }
+}
+
+function microphoneConstraints(settings: AudioSettings, includeDevice: boolean): MediaTrackConstraints {
+  return {
+    deviceId: includeDevice && settings.microphoneDeviceId ? { exact: settings.microphoneDeviceId } : undefined,
+    echoCancellation: true,
+    noiseSuppression: true,
+    autoGainControl: true
+  };
 }
 
 function normalizeKey(key: string): string {

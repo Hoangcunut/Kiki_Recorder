@@ -15,6 +15,7 @@ export class CanvasCompositor {
   private pointer: Point = { x: 0, y: 0 };
   private clicks: ClickPulse[] = [];
   private currentZoom = 1;
+  private rotatedVideoCanvas = document.createElement("canvas");
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -86,8 +87,13 @@ export class CanvasCompositor {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     const crop = sourceCrop(this.sourceVideo, this.settings.mode === "area" ? this.settings.captureArea : undefined);
-    this.currentZoom = smoothZoom(this.currentZoom, this.settings.zoom);
-    drawCover(ctx, this.sourceVideo, crop, { x: 0, y: 0, width: canvas.width, height: canvas.height }, this.currentZoom, this.pointer);
+    const fullFrame = { x: 0, y: 0, width: canvas.width, height: canvas.height };
+    if (this.settings.mode === "webcam") {
+      this.drawRotatedVideo(this.sourceVideo, crop, fullFrame, this.settings.webcam.rotation);
+    } else {
+      this.currentZoom = smoothZoom(this.currentZoom, this.settings.zoom);
+      drawCover(ctx, this.sourceVideo, crop, fullFrame, this.currentZoom, this.pointer);
+    }
     this.drawSpotlight();
     this.drawWebcam();
     renderAnnotations(ctx, this.annotations());
@@ -130,10 +136,10 @@ export class CanvasCompositor {
     }
     if (this.settings.webcam.backgroundEffect === "blur") {
       ctx.filter = "blur(18px)";
-      drawCover(ctx, this.webcamVideo, videoRect(this.webcamVideo), inflate(rect, 18), 1, this.pointer);
+      this.drawRotatedVideo(this.webcamVideo, videoRect(this.webcamVideo), inflate(rect, 18), this.settings.webcam.rotation);
       ctx.filter = "none";
     }
-    drawCover(ctx, this.webcamVideo, videoRect(this.webcamVideo), rect, 1, this.pointer);
+    this.drawRotatedVideo(this.webcamVideo, videoRect(this.webcamVideo), rect, this.settings.webcam.rotation);
     ctx.restore();
     ctx.save();
     ctx.strokeStyle = "rgba(255,255,255,0.68)";
@@ -155,6 +161,40 @@ export class CanvasCompositor {
       this.ctx.arc(click.x, click.y, radius, 0, Math.PI * 2);
       this.ctx.stroke();
     }
+  }
+
+  private drawRotatedVideo(video: HTMLVideoElement, source: Rect, dest: Rect, rotation: number): void {
+    const safeRotation = normalizeRotation(rotation);
+    if (safeRotation === 0) {
+      drawVideoCover(this.ctx, video, source, dest);
+      return;
+    }
+
+    const width = Math.max(1, Math.round(dest.width));
+    const height = Math.max(1, Math.round(dest.height));
+    const scratch = this.rotatedVideoCanvas;
+    if (scratch.width !== width || scratch.height !== height) {
+      scratch.width = width;
+      scratch.height = height;
+    }
+
+    const scratchCtx = scratch.getContext("2d");
+    if (!scratchCtx) {
+      return;
+    }
+
+    scratchCtx.clearRect(0, 0, width, height);
+    scratchCtx.save();
+    scratchCtx.translate(width / 2, height / 2);
+    scratchCtx.rotate((safeRotation * Math.PI) / 180);
+    const rotatedDest =
+      safeRotation === 90 || safeRotation === 270
+        ? { x: -height / 2, y: -width / 2, width: height, height: width }
+        : { x: -width / 2, y: -height / 2, width, height };
+    drawVideoCover(scratchCtx, video, source, rotatedDest);
+    scratchCtx.restore();
+
+    this.ctx.drawImage(scratch, dest.x, dest.y, dest.width, dest.height);
   }
 
 }
@@ -195,6 +235,30 @@ function drawCover(
   const sx = clamp(focusX - zoomedWidth / 2, source.x, source.x + source.width - zoomedWidth);
   const sy = clamp(focusY - zoomedHeight / 2, source.y, source.y + source.height - zoomedHeight);
   ctx.drawImage(video, sx, sy, zoomedWidth, zoomedHeight, dest.x, dest.y, dest.width, dest.height);
+}
+
+function drawVideoCover(ctx: CanvasRenderingContext2D, video: HTMLVideoElement, source: Rect, dest: Rect): void {
+  const sourceAspect = source.width / Math.max(1, source.height);
+  const destAspect = dest.width / Math.max(1, dest.height);
+  let sx = source.x;
+  let sy = source.y;
+  let sw = source.width;
+  let sh = source.height;
+
+  if (sourceAspect > destAspect) {
+    sw = source.height * destAspect;
+    sx = source.x + (source.width - sw) / 2;
+  } else {
+    sh = source.width / destAspect;
+    sy = source.y + (source.height - sh) / 2;
+  }
+
+  ctx.drawImage(video, sx, sy, sw, sh, dest.x, dest.y, dest.width, dest.height);
+}
+
+function normalizeRotation(rotation: number): 0 | 90 | 180 | 270 {
+  const normalized = ((Math.round((rotation || 0) / 90) * 90) % 360 + 360) % 360;
+  return normalized === 90 || normalized === 180 || normalized === 270 ? normalized : 0;
 }
 
 function normalizedRect(rect: Rect, width: number, height: number): Rect {

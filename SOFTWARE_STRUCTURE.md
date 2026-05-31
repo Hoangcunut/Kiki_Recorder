@@ -44,15 +44,15 @@ KikiRecorder là ứng dụng desktop ghi màn hình đa nền tảng dùng Elec
 - `src/main/index.ts`: Electron main process, tạo cửa sổ chính, overlay chọn vùng, toolbox khi quay, surface vẽ trong suốt, đăng ký IPC, lấy nguồn màn hình/cửa sổ, hotkey, lịch ghi và quyền hệ thống.
 - `src/main/ffmpeg.ts`: chạy FFmpeg để chuyển WebM ghi thô sang MP4 mặc định và export MP4, WEBM, GIF, AVI, MOV.
 - `src/preload/index.ts`: bridge IPC an toàn giữa renderer và main process, gồm API chọn vùng desktop, lưu video và điều khiển recording overlay/toolbox.
-- `src/renderer/App.tsx`: state chính của UI, start/stop/pause recorder, nhận event từ toolbox/surface, quản lý thư viện, lịch ghi và settings.
+- `src/renderer/App.tsx`: state chính của UI, start/stop/pause recorder, nhận event từ toolbox/surface, quản lý thư viện, lịch ghi, settings và danh sách thiết bị webcam đầu vào.
 - `src/renderer/components/RegionOverlayApp.tsx`: overlay trong suốt phủ màn hình để kéo chọn, di chuyển và resize vùng ghi trước khi bắt đầu.
 - `src/renderer/components/RecordingToolboxApp.tsx`: cửa sổ toolbox riêng khi quay. File này cần được làm lại theo đặc tả Toolbox bên dưới.
 - `src/renderer/components/RecordingSurfaceApp.tsx`: surface trong suốt chỉ phục vụ vẽ trực tiếp và hiển thị annotation trên desktop.
-- `src/renderer/components/RecordingStage.tsx`: preview nhỏ trong app; hỗ trợ nhập text inline ngay tại vị trí click, textarea phải focus được ngay và không bị canvas pointer-capture chặn nhập, kéo text bằng công cụ Select, và kéo khung webcam overlay đến vị trí bất kỳ trong preview.
+- `src/renderer/components/RecordingStage.tsx`: preview nhỏ trong app; hỗ trợ nhập text inline ngay tại vị trí click, textarea phải focus được ngay và không bị canvas pointer-capture chặn nhập, kéo text bằng công cụ Select, kéo khung webcam overlay đến vị trí bất kỳ trong preview, và resize khung webcam bằng các điểm kéo cạnh/góc để phóng to/thu nhỏ vùng webcam trước khi quay.
 - `src/renderer/lib/recorder/RecorderEngine.ts`: lấy stream màn hình/webcam/audio, chạy MediaRecorder, điều khiển pause/resume/mute và lưu file.
-- `src/renderer/lib/recorder/LivePreviewEngine.ts`: chạy live preview nhẹ trước khi quay, lấy stream màn hình/cửa sổ/webcam đã chọn và render bằng `CanvasCompositor` nhưng không bật MediaRecorder/FFmpeg.
-- `src/renderer/lib/recorder/CanvasCompositor.ts`: render màn hình, webcam overlay, annotation, blur/pixelate, spotlight, smooth zoom và click highlight vào canvas ghi hình; không vẽ dòng gợi ý phím tắt lên preview/video. Blur/pixelate phải được render trước các nét vẽ màu để không tạo bóng màu cũ của bút.
-- `src/renderer/lib/media/AudioMixer.ts`: trộn âm thanh hệ thống và micro, hỗ trợ mute/unmute trong lúc quay.
+- `src/renderer/lib/recorder/LivePreviewEngine.ts`: chạy live preview nhẹ trước khi quay, lấy stream màn hình/cửa sổ/webcam đã chọn và render bằng `CanvasCompositor` nhưng không bật MediaRecorder/FFmpeg. Webcam dùng đúng `deviceId` đã chọn trong panel, và tự fallback về camera mặc định nếu thiết bị đã chọn không còn khả dụng.
+- `src/renderer/lib/recorder/CanvasCompositor.ts`: render màn hình, webcam overlay, annotation, blur/pixelate, spotlight, smooth zoom và click highlight vào canvas ghi hình; không vẽ dòng gợi ý phím tắt lên preview/video. Blur/pixelate phải được render trước các nét vẽ màu để không tạo bóng màu cũ của bút. Webcam-only và webcam PiP phải hỗ trợ xoay 0/90/180/270 độ trong cả preview, screenshot và video.
+- `src/renderer/lib/media/AudioMixer.ts`: trộn âm thanh hệ thống và micro, hỗ trợ chọn thiết bị micro đầu vào, fallback về micro mặc định khi thiết bị đã chọn mất kết nối, mute/unmute trong lúc quay, và cleanup gain node sau mỗi phiên để tránh giữ audio node cũ.
 - `src/renderer/i18n.tsx`: ngôn ngữ English và Tiếng Việt UTF-8.
 
 ## Chức năng chính của phần mềm
@@ -62,9 +62,9 @@ KikiRecorder là ứng dụng desktop ghi màn hình đa nền tảng dùng Elec
 - Chọn vùng ghi bằng overlay toàn desktop: kéo tạo vùng ở bất cứ vị trí nào trên màn hình, hiện kích thước, có thể di chuyển/resize trước khi quay.
 - Khi chuyển từ `Vùng chọn` sang `Màn hình`, `Cửa sổ` hoặc `Webcam`, app phải xóa `captureArea/captureRegion`; `CanvasCompositor` chỉ crop khi mode hiện tại là `area`.
 - File đầu ra mặc định là MP4. Nội bộ có thể ghi WebM bằng MediaRecorder rồi chuyển MP4 bằng FFmpeg; nếu FFmpeg lỗi thì giữ WebM fallback và báo lỗi rõ.
-- Ghi system audio, microphone hoặc cả hai; có thể bật/tắt mic/system audio trong lúc quay nếu track đã được capture.
-- Webcam picture-in-picture, tùy chỉnh hình chữ nhật/hình tròn, kích thước, vị trí, background blur hoặc virtual background cơ bản. Có thể kéo thả webcam overlay trong preview bằng công cụ Select; vị trí mới được lưu vào settings và dùng khi ghi video.
-- Luồng preview/recording phải hạn chế restart stream không cần thiết; các thay đổi nhẹ như style, annotation, zoom, spotlight và vị trí webcam chỉ update settings/compositor. Kéo webcam overlay được throttle bằng `requestAnimationFrame` để giảm lag.
+- Ghi system audio, microphone hoặc cả hai; có thể chọn thiết bị micro đầu vào, làm mới danh sách micro để xin quyền/lấy tên thiết bị, fallback về micro mặc định khi thiết bị đã chọn không khả dụng, và bật/tắt mic/system audio trong lúc quay nếu track đã được capture.
+- Webcam picture-in-picture, tùy chỉnh thiết bị đầu vào, xoay 0/90/180/270 độ, hình chữ nhật/hình tròn, kích thước, vị trí, background blur hoặc virtual background cơ bản. Có thể kéo thả webcam overlay trong preview bằng công cụ Select; có thể kéo cạnh/góc khung webcam trong preview để phóng to/thu nhỏ vùng cam, vị trí/kích thước mới được lưu vào settings và dùng khi ghi video. Nút làm mới webcam sẽ xin quyền camera khi cần để Electron/Chromium trả về danh sách và tên thiết bị.
+- Luồng preview/recording phải hạn chế restart stream không cần thiết; các thay đổi nhẹ như style, annotation, zoom, spotlight và vị trí webcam chỉ update settings/compositor. Kéo webcam overlay và đồng bộ overlay/toolbox IPC được throttle/coalesce bằng `requestAnimationFrame` để giảm lag khi vẽ hoặc resize.
 - Vẽ và chú thích thời gian thực: pen, highlighter, text, arrow, line, rectangle, circle, step marker, eraser, undo/redo, blur, pixelate.
 - Smooth zoom, spotlight quanh con trỏ và highlight click chuột trong lúc quay.
 - Pause/resume/restart/stop, countdown timer, auto-stop timer, hotkey tùy chỉnh.
@@ -75,7 +75,7 @@ KikiRecorder là ứng dụng desktop ghi màn hình đa nền tảng dùng Elec
 ## Luồng ghi hình mục tiêu
 
 1. Khi app ở tab ghi hình và trạng thái `idle`, `LivePreviewEngine` tự mở preview nguồn đang chọn nếu có `sourceId` hoặc đang ở mode webcam.
-2. Người dùng có thể vẽ, thêm text, blur/pixelate, kéo webcam overlay và xem trước bố cục ngay trong preview nhỏ trước khi quay. Các annotation này không bị reset khi bấm `Bắt đầu`.
+2. Người dùng có thể vẽ, thêm text, blur/pixelate, kéo/resize webcam overlay và xem trước bố cục ngay trong preview nhỏ trước khi quay. Các annotation này không bị reset khi bấm `Bắt đầu`.
 3. Người dùng bấm `Bắt đầu`.
 4. App dừng live preview nhẹ để nhường stream cho recorder thật, rồi khóa trạng thái start bằng `preparing` để chống double-click/hotkey lặp.
 5. Nếu chế độ là `area`, mở `RegionOverlayApp` để chọn vùng. Chỉ được có một overlay chọn vùng tại một thời điểm.

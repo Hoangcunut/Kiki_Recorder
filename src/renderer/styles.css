@@ -525,6 +525,69 @@ p {
   cursor: move;
 }
 
+.webcamResizeHandle {
+  position: absolute;
+  z-index: 2;
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(248, 250, 252, 0.92);
+  border-radius: 999px;
+  background: #14b8a6;
+  box-shadow: 0 0 0 1px rgba(5, 7, 11, 0.78), 0 4px 12px rgba(0, 0, 0, 0.28);
+}
+
+.webcamResizeHandle.n {
+  top: -7px;
+  left: 50%;
+  transform: translateX(-50%);
+  cursor: ns-resize;
+}
+
+.webcamResizeHandle.e {
+  top: 50%;
+  right: -7px;
+  transform: translateY(-50%);
+  cursor: ew-resize;
+}
+
+.webcamResizeHandle.s {
+  bottom: -7px;
+  left: 50%;
+  transform: translateX(-50%);
+  cursor: ns-resize;
+}
+
+.webcamResizeHandle.w {
+  top: 50%;
+  left: -7px;
+  transform: translateY(-50%);
+  cursor: ew-resize;
+}
+
+.webcamResizeHandle.ne {
+  top: -7px;
+  right: -7px;
+  cursor: nesw-resize;
+}
+
+.webcamResizeHandle.nw {
+  top: -7px;
+  left: -7px;
+  cursor: nwse-resize;
+}
+
+.webcamResizeHandle.se {
+  right: -7px;
+  bottom: -7px;
+  cursor: nwse-resize;
+}
+
+.webcamResizeHandle.sw {
+  bottom: -7px;
+  left: -7px;
+  cursor: nesw-resize;
+}
+
 .webcamDragFrame.circle {
   border-radius: 999px;
 }

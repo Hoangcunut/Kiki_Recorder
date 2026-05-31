@@ -5,8 +5,9 @@ KikiRecorder is a privacy-first desktop screen recorder built with Electron, Rea
 - Free, no watermark, no sign-up, no telemetry.
 - Saves recordings, screenshots, projects, and settings locally.
 - Records to MP4 by default. The app captures WebM with `MediaRecorder`, then converts it to MP4/H.264 with bundled FFmpeg. If conversion fails, the WebM fallback is kept.
-- Supports screen, window, desktop-area, browser-picker, and webcam-only recording modes.
-- Supports webcam picture-in-picture, microphone/system audio, push-to-talk, annotations, screenshot annotation, scheduled recording, local history, and FFmpeg exports.
+- Supports screen, window, desktop-area, and webcam-only recording modes.
+- Supports webcam device selection, webcam picture-in-picture, webcam rotation, resizable webcam preview frame, microphone device selection, system audio, push-to-talk, annotations, screenshot annotation, scheduled recording, local history, and FFmpeg exports.
+- If a selected camera or microphone is disconnected, recording falls back to the system default device instead of failing immediately.
 - Desktop-area mode opens a transparent full-screen picker so you can drag anywhere, see the frame size, then move or resize the frame before recording.
 - Start is guarded by a `preparing` state, so repeated clicks cannot spawn multiple picker/overlay windows while the app is waiting for region selection or capture permission.
 - Window recording retries video-only capture automatically if system-audio capture makes the first capture request fail, so the recording and toolbox can still start.

@@ -25,6 +25,7 @@ export const defaultRecordingSettings: RecordingSettings = {
     enabled: false,
     webcamOnly: false,
     shape: "circle",
+    rotation: 0,
     position: { x: 0.72, y: 0.68, width: 0.22, height: 0.26 },
     opacity: 1,
     backgroundEffect: "none"

@@ -48,11 +48,17 @@ export default function App() {
   const startInProgress = useRef(false);
   const pendingWebcamPosition = useRef<Rect | undefined>(undefined);
   const webcamPositionFrame = useRef<number | undefined>(undefined);
+  const webcamAutoEnumerated = useRef(false);
+  const microphoneAutoEnumerated = useRef(false);
+  const pendingOverlayConfig = useRef<RecordingOverlayConfig | undefined>(undefined);
+  const overlaySyncFrame = useRef<number | undefined>(undefined);
 
   const [tab, setTab] = useState<TabId>("record");
   const [settings, setSettingsState] = useState<RecordingSettings>(defaultRecordingSettings);
   const [appSettings, setAppSettings] = useState<AppSettings>(fallbackAppSettings);
   const [sources, setSources] = useState<CaptureSource[]>([]);
+  const [webcamDevices, setWebcamDevices] = useState<MediaDeviceInfo[]>([]);
+  const [microphoneDevices, setMicrophoneDevices] = useState<MediaDeviceInfo[]>([]);
   const [displays, setDisplays] = useState<DisplayInfo[]>([]);
   const [library, setLibrary] = useState<LibraryItem[]>([]);
   const [selectedEdit, setSelectedEdit] = useState<LibraryItem | undefined>();
@@ -88,6 +94,9 @@ export default function App() {
       engineRef.current.cleanup();
       if (webcamPositionFrame.current) {
         window.cancelAnimationFrame(webcamPositionFrame.current);
+      }
+      if (overlaySyncFrame.current) {
+        window.cancelAnimationFrame(overlaySyncFrame.current);
       }
       clearTimers();
     };
@@ -139,6 +148,23 @@ export default function App() {
   }, [settings]);
 
   useEffect(() => {
+    const needsWebcamDevices = settings.mode === "webcam" || settings.webcam.enabled;
+    if (!needsWebcamDevices || webcamAutoEnumerated.current || webcamDevices.length > 0) {
+      return;
+    }
+    webcamAutoEnumerated.current = true;
+    void refreshWebcamDevices(false);
+  }, [settings.mode, settings.webcam.enabled, webcamDevices.length]);
+
+  useEffect(() => {
+    if (!settings.audio.microphone || microphoneAutoEnumerated.current || microphoneDevices.length > 0) {
+      return;
+    }
+    microphoneAutoEnumerated.current = true;
+    void refreshMicrophoneDevices(false);
+  }, [settings.audio.microphone, microphoneDevices.length]);
+
+  useEffect(() => {
     let cancelled = false;
     const canvas = canvasRef.current;
     if (tab !== "record" || uiState !== "idle" || !canvas || !canLivePreview(settings)) {
@@ -152,6 +178,9 @@ export default function App() {
       .then(() => {
         if (!cancelled) {
           setPreviewActive(true);
+          if (settings.mode === "webcam" || settings.webcam.enabled) {
+            void refreshWebcamDevices(false);
+          }
         }
       })
       .catch((cause) => {
@@ -182,7 +211,7 @@ export default function App() {
     if (uiState === "idle" || uiState === "preparing" || uiState === "saving") {
       return;
     }
-    void syncRecordingOverlay(settings);
+    scheduleRecordingOverlaySync(settings);
   }, [
     uiState,
     settings,
@@ -225,7 +254,7 @@ export default function App() {
       setLibrary(loadedLibrary);
       setSchedules(loadedSchedules);
       setDisplays(loadedDisplays);
-      await refreshSources();
+      await Promise.all([refreshSources(), refreshWebcamDevices(false), refreshMicrophoneDevices(false)]);
     } catch (cause) {
       setError(errorMessage(cause));
     }
@@ -246,6 +275,44 @@ export default function App() {
       const firstScreen = nextSources.find((source) => source.type === "screen");
       return firstScreen ? { ...normalized, sourceId: firstScreen.id, sourceName: firstScreen.name } : normalized;
     });
+  }
+
+  async function refreshWebcamDevices(requestPermission = false): Promise<void> {
+    let permissionStream: MediaStream | undefined;
+    try {
+      let devices = await navigator.mediaDevices.enumerateDevices();
+      let videoDevices = devices.filter((device) => device.kind === "videoinput");
+      const hasVisibleLabels = videoDevices.some((device) => device.label);
+      if (requestPermission && !hasVisibleLabels) {
+        permissionStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        devices = await navigator.mediaDevices.enumerateDevices();
+        videoDevices = devices.filter((device) => device.kind === "videoinput");
+      }
+      setWebcamDevices(videoDevices);
+    } catch (cause) {
+      setError(errorMessage(cause));
+    } finally {
+      permissionStream?.getTracks().forEach((track) => track.stop());
+    }
+  }
+
+  async function refreshMicrophoneDevices(requestPermission = false): Promise<void> {
+    let permissionStream: MediaStream | undefined;
+    try {
+      let devices = await navigator.mediaDevices.enumerateDevices();
+      let audioDevices = devices.filter((device) => device.kind === "audioinput");
+      const hasVisibleLabels = audioDevices.some((device) => device.label);
+      if (requestPermission && !hasVisibleLabels) {
+        permissionStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        devices = await navigator.mediaDevices.enumerateDevices();
+        audioDevices = devices.filter((device) => device.kind === "audioinput");
+      }
+      setMicrophoneDevices(audioDevices);
+    } catch (cause) {
+      setError(errorMessage(cause));
+    } finally {
+      permissionStream?.getTracks().forEach((track) => track.stop());
+    }
   }
 
   async function startRecording(override?: RecordingSettings, force = false): Promise<void> {
@@ -447,11 +514,23 @@ export default function App() {
     }
   }
 
-  async function syncRecordingOverlay(activeSettings: RecordingSettings): Promise<void> {
+  function scheduleRecordingOverlaySync(activeSettings: RecordingSettings): void {
     const config = recordingOverlayConfig(activeSettings);
-    if (config) {
-      await window.kiki.updateRecordingOverlay(config);
+    if (!config) {
+      return;
     }
+    pendingOverlayConfig.current = config;
+    if (overlaySyncFrame.current) {
+      return;
+    }
+    overlaySyncFrame.current = window.requestAnimationFrame(() => {
+      overlaySyncFrame.current = undefined;
+      const nextConfig = pendingOverlayConfig.current;
+      pendingOverlayConfig.current = undefined;
+      if (nextConfig) {
+        void window.kiki.updateRecordingOverlay(nextConfig);
+      }
+    });
   }
 
   function recordingOverlayConfig(
@@ -891,11 +970,15 @@ export default function App() {
             <RecorderPanel
               settings={settings}
               sources={sources}
+              webcamDevices={webcamDevices}
+              microphoneDevices={microphoneDevices}
               state={uiState}
               elapsed={elapsed}
               countdown={countdown}
               onSettings={setSettings}
               onRefreshSources={() => void refreshSources()}
+              onRefreshWebcamDevices={() => void refreshWebcamDevices(true)}
+              onRefreshMicrophoneDevices={() => void refreshMicrophoneDevices(true)}
               onSelectRegion={() => void chooseDesktopRegion()}
               onStart={() => void startRecording()}
               onPauseResume={pauseResume}
