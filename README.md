@@ -46,7 +46,7 @@ npm run dist
 
 Artifacts are written to `release/`.
 
-Release tags `v*` also run the GitHub Actions release workflow, which builds the Windows installer/portable executables and uploads them to the matching GitHub Release.
+Release tags `v*` also run the GitHub Actions release workflow, which builds the Windows installer/portable executables with Electron Builder publish disabled, then uploads them to the matching GitHub Release.
 
 Run the unpacked Windows build:
 
